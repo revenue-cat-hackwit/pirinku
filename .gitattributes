@@ -1,0 +1,11 @@
+# Set default behavior to automatically normalize line endings.
+# Files will be normalized to use LF in the repository.
+* text=auto eol=lf
+
+# Declare files that will always be treated as binary.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
