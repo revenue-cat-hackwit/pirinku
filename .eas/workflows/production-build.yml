@@ -1,0 +1,20 @@
+name: Production Build & Deploy
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build_android:
+    type: build
+    params:
+      platform: android
+      profile: production
+  
+  submit_android:
+    type: submit
+    params:
+      platform: android
+      profile: production
+    needs:
+      - build_android

@@ -1,0 +1,15 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: ['main', 'develop']
+
+jobs:
+  lint_and_typecheck:
+    type: function
+    params:
+      name: lint-check
+      command: |
+        npm ci
+        npm run lint
+        npx tsc --noEmit
