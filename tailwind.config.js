@@ -7,7 +7,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        visby: ['VisbyCF-Regular'],
+        'visby-regular': ['VisbyCF-Regular'],
+        'visby-medium': ['VisbyCF-Medium'],
+        'visby-demibold': ['VisbyCF-DemiBold'],
       },
     },
   },

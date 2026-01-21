@@ -9,6 +9,8 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [fontsLoaded, error] = useFonts({
     'VisbyCF-Regular': require('../assets/fonts/VisbyCF-Regular.otf'),
+    'VisbyCF-Medium': require('../assets/fonts/VisbyCF-Medium.otf'),
+    'VisbyCF-DemiBold': require('../assets/fonts/VisbyCF-DemiBold.otf'),
   });
 
   useEffect(() => {
