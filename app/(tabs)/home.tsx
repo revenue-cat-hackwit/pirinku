@@ -1,9 +1,19 @@
+import { useAuthStore } from '@/lib/store/authStore';
 import { Text, View } from 'react-native';
 
 export default function HomePage() {
+  const signOut = useAuthStore((state) => state.signOut);
   return (
-    <View className="flex-1 items-center justify-center bg-blue-200 font-visby-regular">
+    <View className="flex-1 items-center justify-center font-visby-regular">
       <Text>Home Page</Text>
+      <Text
+        className="mt-4 rounded bg-red-500 px-4 py-2 text-white"
+        onPress={async () => {
+          await signOut();
+        }}
+      >
+        Sign Out
+      </Text>
     </View>
   );
 }
