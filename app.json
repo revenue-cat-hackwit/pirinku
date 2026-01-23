@@ -57,7 +57,8 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png"
       },
-      "package": "com.hackwit.pirinku"
+      "package": "com.hackwit.pirinku",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "extra": {
       "router": {},

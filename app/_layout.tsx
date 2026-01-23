@@ -90,5 +90,11 @@ export default function RootLayout() {
     }
   };
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
 }

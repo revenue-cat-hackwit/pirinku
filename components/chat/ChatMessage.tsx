@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { Message } from '@/lib/types';
 
 interface ChatMessageProps {
@@ -9,6 +10,25 @@ interface ChatMessageProps {
 export const ChatMessage = ({ message }: ChatMessageProps) => {
   const isUser = message.role === 'user';
 
+  const markdownStyles = {
+    body: {
+      color: isUser ? '#FFFFFF' : '#1F2937',
+      fontFamily: 'VisbyCF-Regular',
+      fontSize: 16,
+      lineHeight: 22,
+    },
+    code_inline: {
+      backgroundColor: isUser ? '#3B82F6' : '#E5E7EB',
+      borderRadius: 4,
+      paddingHorizontal: 4,
+      fontFamily: 'Courier',
+    },
+    fence: {
+      backgroundColor: isUser ? '#1D4ED8' : '#F3F4F6',
+      borderColor: isUser ? '#1E40AF' : '#E5E7EB',
+    },
+  };
+
   return (
     <View
       className={`mb-4 max-w-[80%] rounded-2xl p-4 ${
@@ -16,24 +36,12 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       }`}
     >
       {typeof message.content === 'string' ? (
-        <Text
-          className={`${isUser ? 'text-white' : 'text-gray-800'} font-visby text-base leading-5`}
-        >
-          {message.content}
-        </Text>
+        <Markdown style={markdownStyles}>{message.content}</Markdown>
       ) : (
         <View>
           {message.content.map((part, index) => (
             <View key={index}>
-              {part.type === 'text' && (
-                <Text
-                  className={`${
-                    isUser ? 'text-white' : 'text-gray-800'
-                  } font-visby text-base leading-5`}
-                >
-                  {part.text}
-                </Text>
-              )}
+              {part.type === 'text' && <Markdown style={markdownStyles}>{part.text}</Markdown>}
               {part.type === 'image_url' && part.image_url && (
                 <Image
                   source={{ uri: part.image_url.url }}
@@ -46,7 +54,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
         </View>
       )}
       <Text
-        className={`mt-2 text-[10px] ${
+        className={`mt-1 text-[10px] ${
           isUser ? 'text-blue-100' : 'text-gray-400'
         } text-right font-visby`}
       >

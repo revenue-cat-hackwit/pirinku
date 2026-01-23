@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity } from 'react-native';
+import { View, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface ChatInputProps {
   value: string;
@@ -19,10 +20,13 @@ export const ChatInput = ({
   loading,
   disabled,
 }: ChatInputProps) => {
+  const router = useRouter();
+
   return (
-    <View className="border-t border-gray-100 bg-white p-4">
+    <View className="bg-transparent p-4">
+      {/* Container Kotak Hitam Besar */}
       <View className="min-h-[120px] justify-between rounded-[32px] bg-[#1E1F20] p-4">
-        {/* Input Area */}
+        {/* Input Area (Atas) */}
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -33,43 +37,47 @@ export const ChatInput = ({
           textAlignVertical="top"
         />
 
-        {/* Action Row */}
+        {/* Action Row (Bawah) */}
         <View className="mt-2 flex-row items-center justify-between">
-          {/* Left Actions */}
+          {/* Kiri: Add Image */}
           <View className="flex-row items-center gap-4">
             <TouchableOpacity onPress={onPickImage} disabled={disabled || loading}>
               <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A2B2C]">
                 <Ionicons name="add" size={24} color="#E3E3E3" />
               </View>
             </TouchableOpacity>
-
-            {/* Dummy Tools Icon */}
-            {/* <TouchableOpacity className="flex-row items-center bg-[#2A2B2C] px-3 py-2 rounded-full">
-               <Ionicons name="options-outline" size={18} color="#E3E3E3" />
-               <Text className='text-gray-300 ml-2 font-visby text-xs'>Alat</Text>
-            </TouchableOpacity> */}
           </View>
 
-          {/* Right Actions */}
-          <View className="flex-row items-center gap-4">
-            {/* Dummy Mic Icon */}
-            {/* <TouchableOpacity>
-              <Ionicons name="mic" size={24} color="#E3E3E3" />
-             </TouchableOpacity> */}
+          {/* Kanan: Tombol Dinamis */}
+          <View className="flex-row items-center gap-3">
+            {loading ? (
+              /* 1. LOADING STATE: Stop Button (Square) */
+              <TouchableOpacity onPress={() => console.log('Stop Generating')} className="mr-1">
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A2B2C]">
+                  <Ionicons name="square" size={14} color="#E3E3E3" />
+                </View>
+              </TouchableOpacity>
+            ) : value.trim().length > 0 ? (
+              /* 2. TYPING STATE: Send Button (Red Arrow) */
+              <TouchableOpacity onPress={onSend} disabled={disabled}>
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-[#CC5544]">
+                  <Ionicons name="arrow-up" size={24} color="white" />
+                </View>
+              </TouchableOpacity>
+            ) : (
+              /* 3. IDLE STATE: Mic + Voice Mode (Waveform) */
+              <>
+                <TouchableOpacity onPress={() => console.log('Mic Dikte')}>
+                  <Ionicons name="mic" size={24} color="#E3E3E3" />
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={onSend}
-              disabled={disabled || loading || !value.trim()}
-              className={`${loading || !value.trim() ? 'opacity-50' : 'opacity-100'}`}
-            >
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
-                {loading ? (
-                  <Ionicons name="hourglass" size={20} color="black" />
-                ) : (
-                  <Ionicons name="arrow-up" size={24} color="black" />
-                )}
-              </View>
-            </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/voice-mode')}>
+                  <View className="h-10 w-10 items-center justify-center rounded-full border border-gray-700 bg-black">
+                    <Ionicons name="pulse" size={24} color="white" />
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </View>

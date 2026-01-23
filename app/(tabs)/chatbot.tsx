@@ -1,10 +1,54 @@
-import React, { useState, useRef } from 'react';
-import { View, FlatList, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  FlatList,
+  Alert,
+  Animated,
+  Easing,
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
 import { Message } from '@/lib/types';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const ThinkingIndicator = () => {
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ).start();
+  }, []);
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <View className="p-4 pb-8 pt-2">
+      <View className="mb-2 flex-row items-center">
+        <Animated.View style={{ transform: [{ rotate: spin }] }}>
+          <Ionicons name="sparkles" size={24} color="#CC5544" />
+        </Animated.View>
+      </View>
+      <Text className="text-right font-visby text-xs text-gray-400">
+        Pirinku bisa melakukan kesalahan. Periksa ulang respons.
+      </Text>
+    </View>
+  );
+};
 
 export default function Chatbot() {
   const flatListRef = useRef<FlatList>(null);
@@ -38,6 +82,8 @@ export default function Chatbot() {
         content: msg.content,
       }));
 
+      console.log('[Chatbot] Sending payload:', { messages: apiMessages });
+
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
         body: {
           messages: apiMessages,
@@ -46,17 +92,26 @@ export default function Chatbot() {
         },
       });
 
-      if (error) throw error;
+      console.log('[Chatbot] Raw Response:', data);
+
+      if (error) {
+        console.error('[Chatbot] Supabase Function Error:', error);
+        throw error;
+      }
+
+      // Safety check for response structure
+      const aiResponseContent =
+        data?.data?.message || data?.message || 'Maaf, saya tidak mengerti.';
 
       const aiMessage: Message = {
         role: 'assistant',
-        content: data.data.message,
+        content: aiResponseContent,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
-      console.error('Error calling AI:', error);
+      console.error('[Chatbot] Error calling AI:', error);
       Alert.alert('Error', 'Maaf, Chef Bot sedang sibuk. Coba lagi nanti ya!');
     } finally {
       setLoading(false);
@@ -131,24 +186,31 @@ export default function Chatbot() {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={({ item }) => <ChatMessage message={item} />}
-        keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-      />
+    <SafeAreaView className="flex-1 bg-white">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={100}
+      >
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={({ item }) => <ChatMessage message={item} />}
+          keyExtractor={(_, index) => index.toString()}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          ListFooterComponent={loading ? <ThinkingIndicator /> : null}
+        />
 
-      <ChatInput
-        value={inputText}
-        onChangeText={setInputText}
-        onSend={sendMessage}
-        onPickImage={pickImage}
-        loading={loading}
-      />
-    </View>
+        <ChatInput
+          value={inputText}
+          onChangeText={setInputText}
+          onSend={sendMessage}
+          onPickImage={pickImage}
+          loading={loading}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

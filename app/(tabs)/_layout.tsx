@@ -10,7 +10,13 @@ export default function TabsLayout() {
     return <Redirect href="/" />;
   }
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#FF6B6B', tabBarInactiveTintColor: 'gray' }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: '#FF6B6B',
+        tabBarInactiveTintColor: 'gray',
+        tabBarHideOnKeyboard: true,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -39,10 +45,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="store"
+        name="planner"
         options={{
-          title: 'Store',
-          tabBarIcon: ({ color, size }) => <Ionicons name="storefront" size={size} color={color} />,
+          title: 'Planner',
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
