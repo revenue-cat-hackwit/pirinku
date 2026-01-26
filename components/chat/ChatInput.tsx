@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, TextInput, TouchableOpacity, ActivityIndicator, Alert, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSettingsStore } from '@/lib/store/settingsStore';
@@ -27,38 +27,130 @@ export const ChatInput = ({
   const language = useSettingsStore((state) => state.language);
 
   /* Hook Integration */
-  const { isRecording, startRecording, stopRecording } = useAudioRecorder({
-    // No silence detection needed for Chat Input (manual press)
-  });
+  const { isRecording, startRecording, stopRecording, metering, visualizerData } = useAudioRecorder(
+    {
+      // No silence detection needed for Chat Input (manual press)
+    },
+  );
 
   const [isTranscribing, setIsTranscribing] = useState(false);
 
-  const handleMicPress = async () => {
-    if (isRecording) {
-      // STOP
-      const uri = await stopRecording();
-      if (uri) {
-        setIsTranscribing(true);
-        try {
-          const res = await VoiceService.processAudio(uri, { language }, true); // true = STT Only
-          if (res.transcript) {
-            onChangeText(res.transcript);
-          }
-        } catch (e) {
-          Alert.alert('Error', 'Gagal memproses suara.');
-        } finally {
-          setIsTranscribing(false);
+  const handleStopAndView = async () => {
+    const uri = await stopRecording();
+    if (uri) {
+      setIsTranscribing(true);
+      try {
+        const res = await VoiceService.processAudio(uri, { language }, true);
+        if (res.transcript) {
+          onChangeText(res.transcript);
         }
+      } catch (e) {
+        Alert.alert('Error', 'Gagal memproses suara.');
+      } finally {
+        setIsTranscribing(false);
       }
-    } else {
-      // START
-      await startRecording();
     }
   };
 
+  const handleStopAndSend = async () => {
+    const uri = await stopRecording();
+    if (uri) {
+      setIsTranscribing(true);
+      try {
+        const res = await VoiceService.processAudio(uri, { language }, true);
+        if (res.transcript) {
+          onChangeText(res.transcript);
+          // Wait for state to update then send
+          setTimeout(() => {
+            onSend();
+          }, 500);
+        }
+      } catch (e) {
+        Alert.alert('Error', 'Gagal memproses suara.');
+      } finally {
+        setIsTranscribing(false);
+      }
+    }
+  };
+
+  const handleCancelRecording = async () => {
+    await stopRecording();
+  };
+
+  const handleMicPress = async () => {
+    await startRecording();
+  };
+
+  if (isRecording) {
+    return (
+      <View
+        className="mx-4 mb-6 flex-row items-center justify-between rounded-full bg-[#1E1F20] px-4 py-3 shadow-xl"
+        style={{ elevation: 10 }}
+      >
+        {/* Left: Cancel (X) */}
+        <TouchableOpacity
+          onPress={handleCancelRecording}
+          className="h-10 w-10 items-center justify-center rounded-full bg-[#2A2B2C]"
+        >
+          <Ionicons name="close" size={20} color="#E3E3E3" />
+        </TouchableOpacity>
+
+        {/* Center: Visualizer */}
+        <TouchableOpacity
+          onPress={handleStopAndView}
+          className="mx-2 flex-1 items-center justify-center"
+        >
+          <View className="mb-1 h-14 flex-row items-center justify-end gap-[2px] overflow-hidden px-4">
+            {visualizerData.map((level, i) => {
+              // level is 0.0 to 1.0 (approximately)
+              // Apply slight dampening/smoothing
+              const height = 4 + level * 45;
+
+              return (
+                <View
+                  key={i}
+                  className="w-[3px] rounded-full bg-red-400"
+                  style={{
+                    height: Math.min(50, height),
+                    opacity: 0.5 + level * 0.5, // Fades out if quiet
+                  }}
+                />
+              );
+            })}
+          </View>
+          <Text className="font-visby text-[10px] text-gray-400">Tap to view text</Text>
+        </TouchableOpacity>
+
+        {/* Right: Send (Arrow Up) - Instant Send */}
+        <TouchableOpacity
+          onPress={handleStopAndSend}
+          className="h-10 w-10 items-center justify-center rounded-full bg-white"
+        >
+          <Ionicons name="arrow-up" size={24} color="black" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (isTranscribing) {
+    return (
+      <View
+        className="mx-4 mb-6 flex-row items-center justify-between rounded-full bg-[#1E1F20] px-4 py-3 shadow-xl"
+        style={{ elevation: 10 }}
+      >
+        <View className="h-10 w-10" />
+        <View className="flex-1 items-center justify-center gap-2">
+          <ActivityIndicator color="#CC5544" />
+          <Text className="font-visby text-xs text-gray-400">Processing audio...</Text>
+        </View>
+        <View className="h-10 w-10" />
+      </View>
+    );
+  }
+
   return (
     <View
-      className="mx-4 mb-6 min-h-[120px] justify-between rounded-[32px] bg-[#1E1F20] p-4 shadow-xl"
+      className="mx-4 mb-8 min-h-[60px] rounded-[32px] bg-[#1E1F20] p-4 shadow-xl"
       style={{
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
@@ -71,9 +163,9 @@ export const ChatInput = ({
       <TextInput
         value={value}
         onChangeText={onChangeText}
-        placeholder="Tanya Pirinku..."
+        placeholder="Ask Pirinku..."
         placeholderTextColor="#9ca3af"
-        className="mb-2 max-h-[120px] font-visby text-lg text-white"
+        className="mb-1 max-h-[100px] font-visby text-base text-white"
         multiline
         textAlignVertical="top"
         editable={!loading && !isTranscribing}
@@ -96,54 +188,36 @@ export const ChatInput = ({
 
         {/* Right: Buttons */}
         <View className="flex-row items-center gap-3">
+          {/* 1. Mic always visible if not recording/loading */}
+          {!loading && !isRecording && (
+            <TouchableOpacity
+              onPress={handleMicPress}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              className="mr-1"
+            >
+              <Ionicons name="mic" size={24} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+
+          {/* 2. Send OR Voice Mode Button */}
           {loading ? (
-            /* 1. LOADING STATE: Stop Button (Square) */
             <TouchableOpacity onPress={() => console.log('Stop Generating')} className="mr-1">
               <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A2B2C]">
                 <Ionicons name="square" size={14} color="#E3E3E3" />
               </View>
             </TouchableOpacity>
           ) : value.trim().length > 0 ? (
-            /* 2. TYPING STATE: Send Button (Red Arrow) */
             <TouchableOpacity onPress={onSend} disabled={disabled}>
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-[#CC5544]">
-                <Ionicons name="arrow-up" size={24} color="white" />
+              <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
+                <Ionicons name="arrow-up" size={24} color="black" />
               </View>
             </TouchableOpacity>
           ) : (
-            /* 3. IDLE STATE: Mic + Voice Mode */
-            <>
-              {/* Mic */}
-              {isTranscribing ? (
-                <ActivityIndicator color="#E3E3E3" />
-              ) : (
-                <TouchableOpacity
-                  onPress={handleMicPress}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  className="z-50"
-                  activeOpacity={0.7}
-                >
-                  <View
-                    className={`h-10 w-10 items-center justify-center rounded-full ${isRecording ? 'bg-red-500' : ''}`}
-                  >
-                    <Ionicons
-                      name={isRecording ? 'stop' : 'mic'}
-                      size={24}
-                      color={isRecording ? 'white' : '#E3E3E3'}
-                    />
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {/* Voice Mode Link */}
-              {!isRecording && (
-                <TouchableOpacity onPress={() => router.push('/voice-mode')}>
-                  <View className="h-10 w-10 items-center justify-center rounded-full border border-gray-700 bg-black">
-                    <Ionicons name="pulse" size={24} color="white" />
-                  </View>
-                </TouchableOpacity>
-              )}
-            </>
+            <TouchableOpacity onPress={() => router.push('/voice-mode')}>
+              <View className="h-10 w-10 items-center justify-center rounded-full border border-gray-700 bg-black">
+                <Ionicons name="pulse" size={24} color="white" />
+              </View>
+            </TouchableOpacity>
           )}
         </View>
       </View>

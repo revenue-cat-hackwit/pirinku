@@ -70,7 +70,7 @@ export default function VoiceModeScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { id: 'init', role: 'assistant', text: 'Halo! Ada yang bisa saya bantu hari ini?' },
+    { id: 'init', role: 'assistant', text: 'Hello! How can I help you today?' },
   ]);
 
   // Customization State
@@ -118,8 +118,8 @@ export default function VoiceModeScreen() {
 
   const handleVoiceConversation = async (audioUri: string) => {
     setIsProcessing(true);
-    setTranscript('Mendengarkan...'); // Before we send, or "Processing"...
-    setTranscript('Memproses suara...');
+    setTranscript('Listening...'); // Before we send, or "Processing"...
+    setTranscript('Processing audio...');
 
     try {
       const data = await VoiceService.processAudio(audioUri, {
@@ -167,7 +167,7 @@ export default function VoiceModeScreen() {
       }
     } catch (err: any) {
       console.error('Conversation failed', err);
-      Alert.alert('Error', 'Gagal memproses suara. Coba lagi.');
+      Alert.alert('Error', 'Failed to process audio. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -183,7 +183,7 @@ export default function VoiceModeScreen() {
       player.play();
     } catch (e) {
       console.error('Preview failed', e);
-      Alert.alert('Error', 'Gagal memutar preview suara.');
+      Alert.alert('Error', 'Failed to play preview audio.');
     }
   };
 
@@ -248,7 +248,7 @@ export default function VoiceModeScreen() {
         {/* Processing Indicator */}
         {isProcessing && (
           <View className="absolute bottom-4 left-0 right-0 items-center">
-            <Text className="font-visby text-xs text-gray-400">Sedang memikirkan jawaban...</Text>
+            <Text className="font-visby text-xs text-gray-400">Thinking response...</Text>
           </View>
         )}
       </View>
@@ -317,7 +317,7 @@ export default function VoiceModeScreen() {
               <View className="mb-6 h-1.5 w-12 self-center rounded-full bg-gray-300" />
 
               <Text className="mb-6 text-center font-visby-bold text-lg text-black">
-                Pilih Suara
+                Select Voice
               </Text>
 
               {/* Voice Carousel */}
@@ -361,7 +361,7 @@ export default function VoiceModeScreen() {
               </ScrollView>
 
               <Text className="mb-4 text-center font-visby-bold text-lg text-black">
-                Pilih Kecepatan
+                Select Speed
               </Text>
 
               {/* Speed Toggles */}

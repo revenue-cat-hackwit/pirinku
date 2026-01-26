@@ -15,14 +15,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LanguageSelector } from '@/components/LanguageSelector';
 
 export default function Profile() {
   const router = useRouter();
   const session = useAuthStore((state) => state.session);
   const user = session?.user;
   const setCredentials = useAuthStore((state) => state.setCredentials);
-  const [activeTab, setActiveTab] = useState<'Postingan' | 'Reels' | 'Resep'>('Postingan');
+  const [activeTab, setActiveTab] = useState<'Posts' | 'Reels' | 'Recipes'>('Posts');
 
   // Dummy Data for Profile
   const stats = {
@@ -44,21 +43,6 @@ export default function Profile() {
     'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?q=80&w=500&auto=format&fit=crop', // Pasta
   ];
 
-  const handleSignOut = async () => {
-    Alert.alert('Sign Out', 'Apakah kamu yakin ingin keluar?', [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Keluar',
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.auth.signOut();
-          setCredentials(null, null);
-          router.replace('/(auth)/sign-in');
-        },
-      },
-    ]);
-  };
-
   const { width } = Dimensions.get('window');
   const ITEM_SIZE = width / 3;
 
@@ -68,8 +52,8 @@ export default function Profile() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={28} color="black" />
         </TouchableOpacity>
-        <Text className="ml-4 flex-1 pt-1 font-visby-bold text-xl text-black">Profil</Text>
-        <TouchableOpacity onPress={handleSignOut}>
+        <Text className="ml-4 flex-1 pt-1 font-visby-bold text-xl text-black">Profile</Text>
+        <TouchableOpacity onPress={() => router.push('/settings')}>
           <Ionicons name="settings-outline" size={26} color="black" />
         </TouchableOpacity>
       </View>
@@ -90,17 +74,17 @@ export default function Profile() {
       <View className="mb-6 w-full flex-row justify-between px-8">
         <View className="items-center">
           <Text className="font-visby-bold text-lg text-black">{stats.following}</Text>
-          <Text className="font-visby text-xs text-gray-500">Mengikuti</Text>
+          <Text className="font-visby text-xs text-gray-500">Following</Text>
         </View>
         <View className="h-8 w-[1px] bg-gray-200" />
         <View className="items-center">
           <Text className="font-visby-bold text-lg text-black">{stats.followers}</Text>
-          <Text className="font-visby text-xs text-gray-500">Pengikut</Text>
+          <Text className="font-visby text-xs text-gray-500">Followers</Text>
         </View>
         <View className="h-8 w-[1px] bg-gray-200" />
         <View className="items-center">
           <Text className="font-visby-bold text-lg text-black">{stats.likes}</Text>
-          <Text className="font-visby text-xs text-gray-500">Suka</Text>
+          <Text className="font-visby text-xs text-gray-500">Likes</Text>
         </View>
       </View>
 
@@ -110,7 +94,7 @@ export default function Profile() {
           onPress={() => router.push('/edit-profile')}
           className="mr-2 flex-1 items-center rounded-lg bg-[#5FD08F] px-8 py-2.5"
         >
-          <Text className="font-visby-bold text-base text-white">Edit profil</Text>
+          <Text className="font-visby-bold text-base text-white">Edit Profile</Text>
         </TouchableOpacity>
         <TouchableOpacity className="w-12 items-center justify-center rounded-lg bg-[#5FD08F] p-2.5">
           <Ionicons name="person-add-outline" size={20} color="white" />
@@ -119,17 +103,12 @@ export default function Profile() {
 
       {/* Bio */}
       <Text className="mb-6 px-4 text-center font-visby leading-5 text-gray-800">
-        Masak simpel, hemat, & lezat ala anak kost 🍳🔥
+        Simple, cheap & delicious cooking 🍳🔥
       </Text>
-
-      {/* Language Settings */}
-      <View className="mb-6 px-4">
-        <LanguageSelector />
-      </View>
 
       {/* Tabs */}
       <View className="flex-row border-b border-gray-100">
-        {['Postingan', 'Reels', 'Resep'].map((tab) => (
+        {['Posts', 'Reels', 'Recipes'].map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab as any)}

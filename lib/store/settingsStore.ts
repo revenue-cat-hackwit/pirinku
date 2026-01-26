@@ -11,7 +11,7 @@ interface LanguageOption {
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'auto', label: 'Auto Detect', flag: '🌐' },
-  { code: 'id', label: 'Bahasa Indonesia', flag: '🇮🇩' },
+  { code: 'id', label: 'Indonesian', flag: '🇮🇩' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
 ];
 

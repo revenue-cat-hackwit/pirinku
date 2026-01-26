@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/lib/store/authStore';
+import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 import { supabase } from '@/lib/supabase';
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -20,6 +21,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     SplashScreen.hideAsync();
+    // Initialize RevenueCat
+    useSubscriptionStore.getState().initialize();
   }, []);
 
   useEffect(() => {

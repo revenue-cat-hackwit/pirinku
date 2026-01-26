@@ -170,18 +170,18 @@ export default function Chatbot() {
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={100}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={Platform.OS === 'ios'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <FlatList
           ref={flatListRef}
-          data={messages}
+          inverted
+          data={[...messages].reverse()}
           renderItem={({ item }) => <ChatMessage message={item} />}
           keyExtractor={(_, index) => index.toString()}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          ListFooterComponent={loading ? <ThinkingIndicator /> : null}
+          contentContainerStyle={{ padding: 16, paddingTop: 32 }}
+          ListHeaderComponent={loading ? <ThinkingIndicator /> : null}
         />
 
         <ChatInput

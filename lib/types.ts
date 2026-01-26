@@ -1,3 +1,5 @@
+import { PurchasesOffering, PurchasesPackage, CustomerInfo } from 'react-native-purchases';
+
 export interface MessageContent {
   type: 'text' | 'image_url' | 'video_url';
   text?: string;
@@ -47,4 +49,20 @@ export interface Recipe {
   tips?: string;
   sourceUrl?: string;
   createdAt?: string;
+}
+
+export interface SubscriptionState {
+  isPro: boolean;
+  offerings: PurchasesOffering | null;
+  currentCustomerInfo: CustomerInfo | null;
+  loading: boolean;
+
+  generatedToday: number;
+  lastGeneratedDate: string | null;
+
+  initialize: () => Promise<void>;
+  purchasePackage: (pack: PurchasesPackage) => Promise<boolean>;
+  restorePurchases: () => Promise<boolean>;
+  checkCanGenerate: () => boolean;
+  incrementUsage: () => void;
 }

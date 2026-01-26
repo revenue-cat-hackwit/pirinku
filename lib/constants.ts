@@ -48,3 +48,13 @@ export const SPEEDS = [
   { value: 1.0, label: 'Normal' },
   { value: 1.2, label: 'Cepat' },
 ];
+
+// --- REVENUECAT CONSTANTS ---
+export const ENTITLEMENT_ID = 'pirinku Pro';
+
+export const REVENUECAT_API_KEYS = {
+  apple: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY!,
+  google: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY!,
+};
+
+export const FREE_GENERATION_LIMIT = 3;

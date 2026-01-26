@@ -13,6 +13,7 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [metering, setMetering] = useState(-160);
+  const [visualizerData, setVisualizerData] = useState<number[]>(new Array(35).fill(0));
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const silenceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -54,25 +55,20 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
         playsInSilentModeIOS: true,
       });
 
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-
-      recordingRef.current = recording;
-      setIsRecording(true);
-      isSpeakingRef.current = false;
-      setMetering(-160);
-
-      // Metering Loop
-      recording.setOnRecordingStatusUpdate((status) => {
+      const onStatusUpdate = (status: Audio.RecordingStatus) => {
         if (!status.isRecording) return;
 
-        const curMetering = status.metering || -160;
+        // Metering typically comes as a float, e.g., -160 to 0.
+        const curMetering = status.metering ?? -160;
         setMetering(curMetering);
 
-        // Logic for Auto-Silence Detection (if callback provided)
+        setVisualizerData((prev) => {
+          const normalized = Math.max(0, (curMetering + 60) / 60);
+          return [...prev.slice(1), normalized];
+        });
+
+        // Logic for Auto-Silence Detection
         if (options.onSilenceDetected) {
-          // Speech Start
           if (curMetering > SILENCE_THRESHOLD) {
             isSpeakingRef.current = true;
             if (silenceTimer.current) {
@@ -81,7 +77,6 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
             }
           }
 
-          // Speech End (Silence)
           if (isSpeakingRef.current && curMetering < SILENCE_THRESHOLD) {
             if (!silenceTimer.current) {
               silenceTimer.current = setTimeout(() => {
@@ -90,7 +85,21 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
             }
           }
         }
-      });
+      };
+
+      const { recording } = await Audio.Recording.createAsync(
+        {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+          isMeteringEnabled: true,
+        },
+        onStatusUpdate,
+        100, // 100ms update interval (10fps is enough for scrolling wave)
+      );
+
+      recordingRef.current = recording;
+      setIsRecording(true);
+      isSpeakingRef.current = false;
+      setMetering(-160);
     } catch (err) {
       console.error('Start Rec Error', err);
       setIsRecording(false);
@@ -128,6 +137,7 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
   return {
     isRecording,
     metering,
+    visualizerData,
     startRecording,
     stopRecording,
     cancelRecording,

@@ -143,7 +143,7 @@ export default function Feed() {
   const leftColumn = FEED_DATA.filter((_, i) => i % 2 === 0);
   const rightColumn = FEED_DATA.filter((_, i) => i % 2 !== 0);
 
-  const categories = ['For You', 'Following', 'Sarapan', 'Diet', 'Pedas'];
+  const categories = ['For You', 'Following', 'Breakfast', 'Diet', 'Spicy'];
 
   return (
     <SafeAreaView className="flex-1 bg-[#F9FAFB]">
@@ -151,7 +151,7 @@ export default function Feed() {
       <View className="z-10 mb-4 rounded-b-[24px] bg-white px-5 pb-4 pt-2 shadow-sm shadow-gray-100">
         <View className="mb-4 flex-row items-center justify-between">
           <View>
-            <Text className="font-visby text-sm text-gray-500">Selamat Pagi,</Text>
+            <Text className="font-visby text-sm text-gray-500">Good Morning,</Text>
             <Text className="font-visby-bold text-2xl text-gray-900">Pirinku Social</Text>
           </View>
           <TouchableOpacity className="rounded-full border border-gray-100 bg-gray-50 p-2">
@@ -162,7 +162,7 @@ export default function Feed() {
         {/* Search Bar Visual Only */}
         <View className="mb-4 flex-row items-center rounded-full bg-gray-100 px-4 py-3">
           <Ionicons name="search" size={18} color="#9CA3AF" />
-          <Text className="ml-2 font-visby text-gray-400">Cari resep viral...</Text>
+          <Text className="ml-2 font-visby text-gray-400">Search viral recipes...</Text>
         </View>
 
         {/* Categories */}
@@ -212,13 +212,13 @@ export default function Feed() {
             <View className="mb-4 h-[200px] items-center justify-center rounded-2xl bg-[#CC5544] p-4">
               <Ionicons name="sparkles" size={32} color="white" />
               <Text className="mt-2 text-center font-visby-bold text-lg text-white">
-                Buat Resep?
+                Generate Recipe?
               </Text>
               <Text className="mb-3 text-center font-visby text-xs text-white/80">
-                Bagikan inspirasi masakanmu ke dunia!
+                Share your culinary inspiration!
               </Text>
               <TouchableOpacity className="rounded-full bg-white px-4 py-2">
-                <Text className="font-visby-bold text-xs text-[#CC5544]">Mulai Masak</Text>
+                <Text className="font-visby-bold text-xs text-[#CC5544]">Start Cooking</Text>
               </TouchableOpacity>
             </View>
           </View>
