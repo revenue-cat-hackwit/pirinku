@@ -16,6 +16,9 @@ import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
+import RevenueCatUI from 'react-native-purchases-ui';
+import * as Haptics from 'expo-haptics';
 
 const ThinkingIndicator = () => {
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -64,8 +67,35 @@ export default function Chatbot() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Subscription Hooks
+  const { checkCanGenerate, incrementUsage, initialize } = useSubscriptionStore();
+
+  const handlePresentPaywall = async () => {
+    const paywallResult = await RevenueCatUI.presentPaywall();
+    if (
+      paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
+      paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
+    ) {
+      await initialize();
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputText.trim() && !loading) return;
+
+    // 1. CHECK QUOTA for Chat
+    if (!checkCanGenerate()) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+            'Daily Limit Reached 🍳',
+            'You have used your free interactions for today. Upgrade to Pro for unlimited chat!',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Upgrade to Pro', onPress: handlePresentPaywall }
+            ]
+        );
+        return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -77,6 +107,7 @@ export default function Chatbot() {
     setMessages((prev) => [...prev, userMessage]);
     setInputText('');
     setLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
       const allMessages = messages.concat(userMessage);
@@ -84,6 +115,10 @@ export default function Chatbot() {
       console.log('[Chatbot] Sending via Service:', { count: allMessages.length });
 
       const aiResponseContent = await AIService.sendMessage(allMessages);
+      
+      // 2. Increment Usage on Success
+      incrementUsage();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -95,6 +130,7 @@ export default function Chatbot() {
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.error('[Chatbot] Error calling AI:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Maaf, Chef Bot sedang sibuk. Coba lagi nanti ya!');
     } finally {
       setLoading(false);
@@ -102,6 +138,20 @@ export default function Chatbot() {
   };
 
   const pickImage = async () => {
+    // 1. CHECk QUOTA for Image Upload
+    if (!checkCanGenerate()) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+            'Daily Limit Reached 🍳',
+            'You have used your free interactions for today. Upgrade to Pro for unlimited photo analysis!',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Upgrade to Pro', onPress: handlePresentPaywall }
+            ]
+        );
+        return;
+    }
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
@@ -123,6 +173,7 @@ export default function Chatbot() {
 
       // For images, use base64
       if (!asset.base64) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert('Error', 'Gagal memproses gambar. Coba lagi.');
         return;
       }
@@ -143,11 +194,16 @@ export default function Chatbot() {
       setMessages((prev) => [...prev, userMessage]);
       setInputText('');
       setLoading(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       try {
         const allMessages = messages.concat(userMessage);
 
         const aiResponseContent = await AIService.sendMessage(allMessages);
+
+        // 2. Increment Usage on Success
+        incrementUsage();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -159,6 +215,7 @@ export default function Chatbot() {
         setMessages((prev) => [...prev, aiMessage]);
       } catch (error: any) {
         console.error('Error analyzing image:', error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert('Error', 'Gagal menganalisis gambar. Pastikan koneksi internet lancar.');
       } finally {
         setLoading(false);

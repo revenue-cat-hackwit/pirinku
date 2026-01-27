@@ -12,9 +12,9 @@ export const RecipeService = {
 
     try {
       const response = await fetch(uri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
 
-      const { error } = await supabase.storage.from('videos').upload(filePath, blob, {
+      const { error } = await supabase.storage.from('videos').upload(filePath, arrayBuffer, {
         contentType: `video/${ext}`,
         upsert: false,
       });
@@ -32,7 +32,7 @@ export const RecipeService = {
   /**
    * Generate recipe from video URL
    */
-  async generateFromVideo(videoUrl: string): Promise<Recipe> {
+  async generateFromVideo(videoUrl: string, userPreferences?: any): Promise<Recipe> {
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/generate-recipe`, {
         method: 'POST',
@@ -42,6 +42,7 @@ export const RecipeService = {
         },
         body: JSON.stringify({
           videoUrl: videoUrl,
+          userPreferences: userPreferences, // Send prefs to backend
         }),
       });
 

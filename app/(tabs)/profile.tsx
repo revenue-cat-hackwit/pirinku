@@ -21,7 +21,7 @@ export default function Profile() {
   const session = useAuthStore((state) => state.session);
   const user = session?.user;
   const setCredentials = useAuthStore((state) => state.setCredentials);
-  const [activeTab, setActiveTab] = useState<'Posts' | 'Reels' | 'Recipes'>('Posts');
+  const [activeTab, setActiveTab] = useState<'Recipe'>('Recipe');
 
   // Dummy Data for Profile
   const stats = {
@@ -49,10 +49,7 @@ export default function Profile() {
   const renderHeader = () => (
     <View className="mb-4 bg-white px-4 pt-2">
       <View className="mb-6 flex-row items-center justify-between">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={28} color="black" />
-        </TouchableOpacity>
-        <Text className="ml-4 flex-1 pt-1 font-visby-bold text-xl text-black">Profile</Text>
+        <Text className="flex-1 pt-1 font-visby-bold text-xl text-black">Profile</Text>
         <TouchableOpacity onPress={() => router.push('/settings')}>
           <Ionicons name="settings-outline" size={26} color="black" />
         </TouchableOpacity>
@@ -108,7 +105,7 @@ export default function Profile() {
 
       {/* Tabs */}
       <View className="flex-row border-b border-gray-100">
-        {['Posts', 'Reels', 'Recipes'].map((tab) => (
+        {['Recipe'].map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab as any)}

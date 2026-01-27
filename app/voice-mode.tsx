@@ -173,13 +173,24 @@ export default function VoiceModeScreen() {
     }
   };
 
+  const currentPreviewPlayer = useRef<any>(null);
+
   const playPreview = async (voice: (typeof VOICES)[0]) => {
     setVoiceConfig((prev) => ({ ...prev, voiceId: voice.id, emotion: voice.emotion }));
 
     // Play local asset to save tokens
     try {
-      // Stop any previous playback if possible (cleanup needed ideally)
+      // Stop any previous playback
+      if (currentPreviewPlayer.current) {
+        try {
+            currentPreviewPlayer.current.pause();
+        } catch (e) {
+            console.log("Error pausing previous player:", e);
+        }
+      }
+
       const player = createAudioPlayer(voice.asset);
+      currentPreviewPlayer.current = player;
       player.play();
     } catch (e) {
       console.error('Preview failed', e);

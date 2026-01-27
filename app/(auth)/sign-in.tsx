@@ -19,10 +19,8 @@ export default function SignInPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { signIn, signInWithGoogle } = useAuthStore((state) => ({
-    signIn: state.signIn,
-    signInWithGoogle: state.signInWithGoogle,
-  }));
+  const signIn = useAuthStore((state) => state.signIn);
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
