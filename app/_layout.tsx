@@ -2,42 +2,20 @@ import { useAuthStore } from '@/lib/store/authStore';
 import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 import { supabase } from '@/lib/supabase';
 import * as Linking from 'expo-linking';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
-
-SplashScreen.preventAutoHideAsync();
+import { useSettingsStore } from '@/lib/store/settingsStore';
 
 export default function RootLayout() {
-  const setCredentials = useAuthStore((state) => state.setCredentials);
-  const setCredentialsFromUrl = useAuthStore((state) => state.setCredentialsFromUrl);
-  const session = useAuthStore((state) => state.session);
-  const segments = useSegments();
-  const router = useRouter();
-
-  // Font loading removed (handled by native config plugin)
-
   useEffect(() => {
-    SplashScreen.hideAsync();
-    // Initialize RevenueCat
     useSubscriptionStore.getState().initialize();
   }, []);
 
   useEffect(() => {
-    const inAuthGroup = segments[0] === '(auth)';
-
-    if (session && inAuthGroup) {
-      // User is signed in, redirect to home/feed
-      router.replace('/(tabs)/feed');
-    } else if (!session && !inAuthGroup) {
-      // User is not signed in, redirect to sign-in
-      if (segments[0] === '(tabs)') {
-        router.replace('/(auth)/sign-in');
-      }
-    }
-  }, [session, segments]);
+    useSettingsStore.getState().loadLanguage();
+  }, []);
 
   useEffect(() => {
     const {
@@ -45,23 +23,15 @@ export default function RootLayout() {
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Supabase Auth Event:', event);
 
-      if (
-        event === 'INITIAL_SESSION' ||
-        event === 'SIGNED_IN' ||
-        event === 'USER_UPDATED' ||
-        event === 'TOKEN_REFRESHED'
-      ) {
-        const user = session?.user || null;
-        setCredentials(session, user);
-      } else if (event === 'SIGNED_OUT') {
-        setCredentials(null, null);
+      //NOTE - Update Auth Store on Auth State Change only for INITIAL_SESSION , TOKEN_REFRESHED and USER_UPDATED because other events are handled explicitly in the Auth Store actions
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        useAuthStore.getState().setCredentials(session, session?.user ?? null);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-    //FIXME - eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -79,7 +49,6 @@ export default function RootLayout() {
     });
 
     return () => sub.remove();
-    //FIXME - eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleUrl = (url: string) => {
@@ -90,7 +59,7 @@ export default function RootLayout() {
     console.log('Auth _layout:', 'Is Reset Password', isResetPassword);
 
     if (isResetPassword) {
-      setCredentialsFromUrl(url);
+      useAuthStore.getState().setCredentialsFromUrl(url);
     }
   };
 

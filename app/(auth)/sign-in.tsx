@@ -6,7 +6,7 @@ import AuthSocialButton from '@/components/auth/AuthSocialButton';
 import AuthTextField from '@/components/auth/AuthTextField';
 import { useAuthStore } from '@/lib/store/authStore';
 import { Ionicons } from '@expo/vector-icons';
-import { GoogleSignin } from '@react-native-google-signin/google-signin'; // Still needed for configure? Yes. I will keep it for configure call in useEffect.
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { AuthError } from '@supabase/supabase-js';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -18,11 +18,6 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const { signIn, signInWithGoogle } = useAuthStore((state) => ({
-    signIn: state.signIn,
-    signInWithGoogle: state.signInWithGoogle,
-  }));
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -50,7 +45,7 @@ export default function SignInPage() {
 
     try {
       setLoading(true);
-      await signIn(email, password);
+      await useAuthStore.getState().signIn(email, password);
     } catch (err) {
       if (err instanceof AuthError) {
         setErrorMessage(err.message);
@@ -65,8 +60,7 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      await signInWithGoogle();
-      // Navigation is handled by auth listener in _layout
+      await useAuthStore.getState().signInWithGoogle();
     } catch (error: any) {
       setErrorMessage(error.message || 'Google Sign-In failed');
     } finally {
