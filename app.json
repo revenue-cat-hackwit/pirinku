@@ -71,10 +71,6 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png"
-      },
       "permissions": ["android.permission.RECORD_AUDIO"],
       "package": "com.hackwit.pirinku",
       "softwareKeyboardLayoutMode": "pan"

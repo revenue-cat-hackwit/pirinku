@@ -12,9 +12,9 @@ export const RecipeService = {
 
     try {
       const response = await fetch(uri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
 
-      const { error } = await supabase.storage.from('videos').upload(filePath, blob, {
+      const { error } = await supabase.storage.from('videos').upload(filePath, arrayBuffer, {
         contentType: `video/${ext}`,
         upsert: false,
       });
@@ -32,7 +32,7 @@ export const RecipeService = {
   /**
    * Generate recipe from video URL
    */
-  async generateFromVideo(videoUrl: string): Promise<Recipe> {
+  async generateFromVideo(videoUrl: string, userPreferences?: any): Promise<Recipe> {
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/generate-recipe`, {
         method: 'POST',
@@ -42,6 +42,7 @@ export const RecipeService = {
         },
         body: JSON.stringify({
           videoUrl: videoUrl,
+          userPreferences: userPreferences, // Send prefs to backend
         }),
       });
 
@@ -65,5 +66,78 @@ export const RecipeService = {
       console.error('RecipeService Gen Error:', error);
       throw error;
     }
+  },
+
+  /**
+   * Save recipe to Supabase (Cloud Sync)
+   */
+  async saveRecipe(recipe: Recipe): Promise<Recipe> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('user_recipes')
+      .insert({
+        user_id: userData.user.id,
+        title: recipe.title,
+        description: recipe.description,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        time_minutes: recipe.time_minutes,
+        difficulty: recipe.difficulty,
+        servings: recipe.servings,
+        calories_per_serving: recipe.calories_per_serving,
+        tips: recipe.tips,
+        source_url: recipe.sourceUrl,
+        image_url: recipe.imageUrl, // Capture image for feed
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Save Recipe Error:', error);
+      throw error;
+    }
+
+    return {
+      ...recipe,
+      id: data.id,
+      createdAt: data.created_at,
+    };
+  },
+
+  /**
+   * Fetch user recipes from Cloud
+   */
+  async getUserRecipes(): Promise<Recipe[]> {
+    const { data, error } = await supabase
+      .from('user_recipes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      ingredients: row.ingredients,
+      steps: row.steps,
+      time_minutes: row.time_minutes,
+      difficulty: row.difficulty,
+      servings: row.servings,
+      calories_per_serving: row.calories_per_serving,
+      tips: row.tips,
+      sourceUrl: row.source_url,
+      createdAt: row.created_at,
+    }));
+  },
+
+  /**
+   * Delete recipe
+   */
+  async deleteRecipe(id: string): Promise<void> {
+    const { error } = await supabase.from('user_recipes').delete().eq('id', id);
+    if (error) throw error;
   },
 };

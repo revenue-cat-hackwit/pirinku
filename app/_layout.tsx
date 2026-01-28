@@ -4,11 +4,16 @@ import { supabase } from '@/lib/supabase';
 import * as Linking from 'expo-linking';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Purchases from 'react-native-purchases';
 import '../global.css';
 import { useSettingsStore } from '@/lib/store/settingsStore';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
+  useEffect(() => {
+    useSettingsStore.getState().loadTheme();
+  }, []);
+
   useEffect(() => {
     useSubscriptionStore.getState().initialize();
   }, []);
@@ -20,7 +25,7 @@ export default function RootLayout() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Supabase Auth Event:', event);
 
       //NOTE - Update Auth Store on Auth State Change only for INITIAL_SESSION , TOKEN_REFRESHED and USER_UPDATED because other events are handled explicitly in the Auth Store actions
@@ -28,7 +33,6 @@ export default function RootLayout() {
         useAuthStore.getState().setCredentials(session, session?.user ?? null);
       }
     });
-
     return () => {
       subscription.unsubscribe();
     };
@@ -37,8 +41,6 @@ export default function RootLayout() {
   useEffect(() => {
     (async () => {
       const initialUrl = await Linking.getInitialURL();
-      console.log('Initial url', initialUrl);
-
       if (initialUrl) {
         handleUrl(initialUrl);
       }
@@ -52,12 +54,7 @@ export default function RootLayout() {
   }, []);
 
   const handleUrl = (url: string) => {
-    console.log('Auth _layout:', url);
-
-    //NOTE - Example URL: pirinku://reset-password?token=....#access_token=....&expires_at=....&expires_in=....&refresh_token=....&token_type=bearer&type=recovery
     const isResetPassword = Linking.parse(url).hostname === 'reset-password';
-    console.log('Auth _layout:', 'Is Reset Password', isResetPassword);
-
     if (isResetPassword) {
       useAuthStore.getState().setCredentialsFromUrl(url);
     }
@@ -68,6 +65,9 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="shopping-list" options={{ presentation: 'modal' }} />
       </Stack>
     </GestureHandlerRootView>
   );

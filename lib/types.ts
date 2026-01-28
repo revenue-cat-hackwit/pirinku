@@ -48,6 +48,7 @@ export interface Recipe {
   calories_per_serving: string;
   tips?: string;
   sourceUrl?: string;
+  imageUrl?: string;
   createdAt?: string;
 }
 
@@ -65,4 +66,29 @@ export interface SubscriptionState {
   restorePurchases: () => Promise<boolean>;
   checkCanGenerate: () => boolean;
   incrementUsage: () => void;
+}
+
+export interface FeedItem {
+  id: string;
+  title: string;
+  image: string;
+  user: {
+    name: string;
+    avatar: string;
+  };
+  likes: number;
+  height: number;
+}
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  isChecked: boolean;
+  fromRecipe?: string;
+}
+
+export interface UserPreferences {
+  allergies: string[];
+  equipment: string[];
+  dietGoal: string;
 }

@@ -17,11 +17,61 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image as ExpoImage } from 'expo-image';
 import Toast, { ToastRef } from '@/components/Toast';
 import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
+import { useShoppingListStore } from '@/lib/store/shoppingListStore';
 import RevenueCatUI from 'react-native-purchases-ui';
+
+import { usePreferencesStore } from '@/lib/store/preferencesStore';
+import * as Haptics from 'expo-haptics';
+
+const CHEF_TIPS = [
+  '💡 Tips: Rendam bawang di air es agar tidak pedih di mata.',
+  '💡 Tips: Tambahkan garam saat merebus pasta agar lebih kenyal.',
+  '💡 Tips: Simpan tomat di suhu ruang agar rasanya tetap segar.',
+  '💡 Tips: Steak sebaiknya suhu ruang sebelum dipanggang.',
+  '💡 Tips: Gunakan air es untuk adonan tepung gorengan.',
+  '💡 Tips: Peras jeruk nipis agar nasi tidak cepat basi.',
+  'Chef is thinking... 🤔',
+  'Checking your ingredients... 🥕',
+  'Creating magic sauce... ✨',
+];
+
+const ChefLoading = ({ status }: { status: string }) => {
+  const [tipIndex, setTipIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % CHEF_TIPS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View className="absolute inset-0 z-50 flex-1 items-center justify-center bg-white/95">
+      <View className="w-[85%] items-center rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+        <View className="relative mb-6">
+          <View className="absolute inset-0 animate-ping rounded-full bg-red-100 opacity-20" />
+          <View className="h-24 w-24 items-center justify-center rounded-full border-4 border-red-100 bg-red-50">
+            <Text className="text-5xl">👨‍🍳</Text>
+          </View>
+        </View>
+        <Text className="mb-2 text-center font-visby-bold text-xl text-gray-900">
+          {status || 'Chef Bot is Cooking...'}
+        </Text>
+        <Text className="min-h-[50px] px-2 text-center font-visby text-sm leading-5 text-gray-500">
+          {CHEF_TIPS[tipIndex]}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 export default function GenerateScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Analyzing...');
+
+  // Preferences
+  const preferences = usePreferencesStore((state) => state.preferences);
+
   const [videoUrl, setVideoUrl] = useState('');
   const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
 
@@ -126,6 +176,7 @@ export default function GenerateScreen() {
   };
 
   const { isPro, checkCanGenerate, incrementUsage, initialize } = useSubscriptionStore();
+  const addToShoppingList = useShoppingListStore((state) => state.addMultiple);
   // Removed local showPaywall state as we use imperative presentPaywall
 
   // ... existing upload code
@@ -165,6 +216,12 @@ export default function GenerateScreen() {
       return;
     }
 
+    // Validate if it's a URL when no files are uploaded
+    if (uploadedFiles.length === 0 && !targetUrl.match(/^https?:\/\//i)) {
+      toastRef.current?.show('Please enter a valid URL (http/https)', 'error');
+      return;
+    }
+
     setLoading(true);
     setLoadingMessage('Fetching Media...');
     setCurrentRecipe(null); // Clear previous result
@@ -187,7 +244,9 @@ export default function GenerateScreen() {
 
     try {
       console.log('Sending to AI, URL:', targetUrl);
-      const generatedRecipe = await RecipeService.generateFromVideo(targetUrl);
+
+      // Inject user preferences
+      const generatedRecipe = await RecipeService.generateFromVideo(targetUrl, preferences);
 
       const newRecipe: Recipe = {
         ...generatedRecipe,
@@ -202,12 +261,30 @@ export default function GenerateScreen() {
       // 2. Increment Usage
       incrementUsage();
 
+      // HAPTIC FEEDBACK SUCCESS!
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
       setUploadedFiles([]);
       setVideoUrl('');
       toastRef.current?.show(`Recipe generated! ${!isPro ? '(Free quota used)' : ''}`, 'success');
     } catch (error: any) {
       console.error('Error flow:', error);
-      toastRef.current?.show(error.message || 'Processing failed.', 'error');
+
+      let friendlyMsg = 'Processing failed. Please try again.';
+      try {
+        // Try parsing if error message is JSON string
+        const parsed = JSON.parse(error.message);
+        if (parsed.error) friendlyMsg = parsed.error;
+        if (parsed.message) friendlyMsg = parsed.message;
+      } catch (e) {
+        // If not JSON, use raw message
+        friendlyMsg = error.message || friendlyMsg;
+      }
+
+      // Shorten if too long (e.g. raw stack trace)
+      if (friendlyMsg.length > 60) friendlyMsg = friendlyMsg.substring(0, 57) + '...';
+
+      toastRef.current?.show(friendlyMsg, 'error');
     } finally {
       clearInterval(interval);
       setLoading(false);
@@ -262,7 +339,46 @@ export default function GenerateScreen() {
       {!isBrief && (
         <>
           <View className="mb-6">
-            <Text className="mb-3 font-visby-bold text-lg text-gray-900">🛒 Ingredients</Text>
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="font-visby-bold text-lg text-gray-900">🛒 Ingredients</Text>
+              {!isBrief && (
+                <TouchableOpacity
+                  onPress={() => {
+                    addToShoppingList(recipe.ingredients, recipe.title);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    toastRef.current?.show('Added to Shopping List', 'success');
+                  }}
+                >
+                  <Text className="font-visby-bold text-xs text-[#CC5544]">+ Add to List</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Community Publish Button - NEW */}
+            {!isBrief && (
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    const { CommunityService } = await import('@/lib/services/communityService');
+                    await CommunityService.publishRecipe(recipe);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    toastRef.current?.show('Published to Community Feed!', 'success');
+                    Alert.alert('Success', 'Your recipe is now live on the Community Feed! 🌍');
+                  } catch (e) {
+                    Alert.alert('Error', 'Failed to publish recipe.');
+                  }
+                }}
+                className="mb-4 flex-row items-center justify-center rounded-xl border border-blue-100 bg-blue-50 py-3"
+              >
+                <Ionicons
+                  name="globe-outline"
+                  size={18}
+                  color="#3B82F6"
+                  style={{ marginRight: 8 }}
+                />
+                <Text className="font-visby-bold text-blue-600">Publish to Community</Text>
+              </TouchableOpacity>
+            )}
             {recipe.ingredients.map((ing, idx) => (
               <View key={idx} className="mb-2 flex-row items-center">
                 <View className="mr-3 h-1.5 w-1.5 rounded-full bg-red-400" />
@@ -307,6 +423,9 @@ export default function GenerateScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
+      {/* LOADING OVERLAY */}
+      {loading && <ChefLoading status={loadingMessage} />}
+
       <ScrollView className="flex-1 px-4 pt-4">
         {/* Header */}
         <View className="mb-6">
