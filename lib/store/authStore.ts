@@ -54,8 +54,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   },
 
   resetPassword: async (newPassword: string) => {
-    const data = await AuthService.updateUserPassword(newPassword);
-    set({ user: data.user });
+    await AuthService.updateUserPassword(newPassword);
   },
 
   setCredentialsFromUrl: async (url: string) => {
@@ -68,11 +67,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
       const type = params.get('type');
 
       if (type === 'recovery' && accessToken && refreshToken) {
-        const data = await AuthService.setSession(accessToken, refreshToken);
-        if (data?.session) {
-          console.log('setCredentialsFromUrl Success: ', data.session);
-          // set({ session: session, user: session?.user });
-        }
+        await AuthService.setSession(accessToken, refreshToken);
       }
     }
   },

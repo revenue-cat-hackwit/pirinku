@@ -122,16 +122,14 @@ export const CommunityService = {
     } else {
       // Like
       // Ensure profile exists first (Safety)
-      await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: userData.user.id,
-            email: userData.user.email,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id', ignoreDuplicates: true },
-        );
+      await supabase.from('profiles').upsert(
+        {
+          id: userData.user.id,
+          email: userData.user.email,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id', ignoreDuplicates: true },
+      );
 
       await supabase.from('post_likes').insert({ user_id: userData.user.id, post_id: postId });
       // Increment counter

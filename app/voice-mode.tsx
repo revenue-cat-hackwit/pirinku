@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   View,
   Alert,
-  Dimensions,
   Modal,
   ScrollView,
   ActivityIndicator,
@@ -18,12 +17,9 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
-  withSpring,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
 import { createAudioPlayer } from 'expo-audio';
-import { supabaseAnonKey, supabaseUrl } from '@/lib/supabase';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { VoiceService } from '@/lib/services/voiceService';

@@ -1,43 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/lib/store/authStore';
-import { useSettingsStore } from '@/lib/store/settingsStore';
-import { Tabs, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import { Redirect, Tabs } from 'expo-router';
+import React from 'react';
 
 export default function TabsLayout() {
   const session = useAuthStore((state) => state.session);
-  const loadLanguage = useSettingsStore((state) => state.loadLanguage);
-
-  useEffect(() => {
-    loadLanguage();
-  }, []);
-
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!session) {
-      router.replace('/');
-    }
-  }, [session]);
 
   if (!session) {
-    return null;
+    return <Redirect href="/sign-in" />;
   }
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#FF6B6B',
         tabBarInactiveTintColor: 'gray',
-        tabBarHideOnKeyboard: true,
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          href: null,
-        }}
-      />
       <Tabs.Screen
         name="feed"
         options={{
@@ -50,6 +30,8 @@ export default function TabsLayout() {
         options={{
           title: 'Chat',
           tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble" size={size} color={color} />,
+          headerShown: true,
+          headerShadowVisible: false,
         }}
       />
       <Tabs.Screen
