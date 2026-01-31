@@ -26,7 +26,12 @@ export const MealPlannerService = {
           ingredients,
           image_url,
           time_minutes,
-          calories_per_serving
+          calories_per_serving,
+          description,
+          difficulty,
+          servings,
+          tips,
+          source_url
         )
       `,
       )
@@ -90,5 +95,20 @@ export const MealPlannerService = {
   async deleteMealPlan(id: string): Promise<void> {
     const { error } = await supabase.from('meal_plans').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  /**
+   * Auto-Generate Weekly Plan via AI
+   */
+  async generateWeeklyPlan(startDate: string): Promise<void> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase.functions.invoke('generate-weekly-plan', {
+      body: { startDate },
+    });
+
+    if (error) throw error;
+    if (!data.success) throw new Error(data.error || 'Failed to generate plan');
   },
 };

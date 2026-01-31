@@ -9,6 +9,7 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -89,6 +90,31 @@ export default function MealPlannerScreen() {
     }
   };
 
+  const handleGeneratePlan = async () => {
+    Alert.alert(
+      'Auto-Plan Week',
+      "AI will generate a 7-day meal plan based on your profile. This will overwrite today's plan onwards.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Plan it! ✨',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await MealPlannerService.generateWeeklyPlan(formatDate(new Date()));
+              Alert.alert('Success', 'Weekly meal plan created!');
+              loadData();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const renderMealSection = (type: string, emoji: string, title: string) => {
     const dateStr = formatDate(selectedDate);
     const meals = mealPlans.filter((p) => p.date === dateStr && p.meal_type === type);
@@ -157,7 +183,13 @@ export default function MealPlannerScreen() {
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text className="font-visby-bold text-xl text-gray-900">Meal Planner</Text>
-        <View style={{ width: 24 }} />
+        <TouchableOpacity onPress={handleGeneratePlan} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#CC5544" />
+          ) : (
+            <Ionicons name="sparkles" size={24} color="#CC5544" />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Date Strips */}
@@ -170,22 +202,28 @@ export default function MealPlannerScreen() {
           {dates.map((date, i) => {
             const isSelected = formatDate(date) === formatDate(selectedDate);
             return (
-              <TouchableOpacity
+              <Pressable
                 key={i}
                 onPress={() => setSelectedDate(date)}
-                className={`mr-3 h-20 w-16 items-center justify-center rounded-2xl ${isSelected ? 'bg-[#CC5544] shadow-md shadow-red-200' : 'border border-gray-100 bg-white'}`}
+                className={`mr-3 h-20 w-16 items-center justify-center rounded-2xl ${
+                  isSelected ? 'bg-[#CC5544]' : 'border border-gray-100 bg-white'
+                }`}
               >
                 <Text
-                  className={`mb-1 font-visby text-xs ${isSelected ? 'text-white/80' : 'text-gray-400'}`}
+                  className={`mb-1 font-visby text-xs ${
+                    isSelected ? 'text-white/80' : 'text-gray-400'
+                  }`}
                 >
                   {getDayName(date)}
                 </Text>
                 <Text
-                  className={`font-visby-bold text-xl ${isSelected ? 'text-white' : 'text-gray-800'}`}
+                  className={`font-visby-bold text-xl ${
+                    isSelected ? 'text-white' : 'text-gray-800'
+                  }`}
                 >
                   {date.getDate()}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
         </ScrollView>

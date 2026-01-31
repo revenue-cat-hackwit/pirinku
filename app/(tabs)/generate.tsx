@@ -23,167 +23,21 @@ import RevenueCatUI from 'react-native-purchases-ui';
 import { usePreferencesStore } from '@/lib/store/preferencesStore';
 import * as Haptics from 'expo-haptics';
 
-const CHEF_TIPS = [
-  '💡 Tips: Rendam bawang di air es agar tidak pedih di mata.',
-  '💡 Tips: Tambahkan garam saat merebus pasta agar lebih kenyal.',
-  '💡 Tips: Simpan tomat di suhu ruang agar rasanya tetap segar.',
-  '💡 Tips: Steak sebaiknya suhu ruang sebelum dipanggang.',
-  '💡 Tips: Gunakan air es untuk adonan tepung gorengan.',
-  '💡 Tips: Peras jeruk nipis agar nasi tidak cepat basi.',
-  'Chef is thinking... 🤔',
-  'Checking your ingredients... 🥕',
-  'Creating magic sauce... ✨',
-];
+import { ChefLoading } from '@/components/ChefLoading';
 
-const ChefLoading = ({ status }: { status: string }) => {
-  const [tipIndex, setTipIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTipIndex((prev) => (prev + 1) % CHEF_TIPS.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <View className="absolute inset-0 z-50 flex-1 items-center justify-center bg-white/95">
-      <View className="w-[85%] items-center rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
-        <View className="relative mb-6">
-          <View className="absolute inset-0 animate-ping rounded-full bg-red-100 opacity-20" />
-          <View className="h-24 w-24 items-center justify-center rounded-full border-4 border-red-100 bg-red-50">
-            <Text className="text-5xl">👨‍🍳</Text>
-          </View>
-        </View>
-        <Text className="mb-2 text-center font-visby-bold text-xl text-gray-900">
-          {status || 'Chef Bot is Cooking...'}
-        </Text>
-        <Text className="min-h-[50px] px-2 text-center font-visby text-sm leading-5 text-gray-500">
-          {CHEF_TIPS[tipIndex]}
-        </Text>
-      </View>
-    </View>
-  );
-};
+import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 
 export default function GenerateScreen() {
-  const [loading, setLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('Analyzing...');
-
-  // Preferences
+  // Dependencies
   const preferences = usePreferencesStore((state) => state.preferences);
-
-  const [videoUrl, setVideoUrl] = useState('');
-  const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
-
-  const { savedRecipes, saveRecipe, deleteRecipe } = useRecipeStorage();
-
+  const { savedRecipes, deleteRecipe } = useRecipeStorage();
+  const { initialize } = useSubscriptionStore();
+  const addToShoppingList = useShoppingListStore((state) => state.addMultiple);
   const toastRef = useRef<ToastRef>(null);
 
-  // File Upload State
-  const [uploading, setUploading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-
-  const removeFile = (urlStr: string) => {
-    setUploadedFiles((prev) => prev.filter((u) => u !== urlStr));
-  };
-
-  const handlePickMedia = async () => {
-    if (uploadedFiles.length >= 5) {
-      toastRef.current?.show('Max 5 photos/videos at once.', 'error');
-      return;
-    }
-
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
-      toastRef.current?.show('Gallery Permission Denied', 'error');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      allowsMultipleSelection: true,
-      selectionLimit: 5 - uploadedFiles.length,
-      quality: 0.5,
-    });
-
-    if (!result.canceled) {
-      handleUploadMultiple(result.assets);
-    }
-  };
-
-  const handleLaunchCamera = async () => {
-    if (uploadedFiles.length >= 5) {
-      toastRef.current?.show('Max 5 photos/videos at a time.', 'error');
-      return;
-    }
-
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      toastRef.current?.show('Camera Permission Denied', 'error');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      quality: 0.5,
-    });
-
-    if (!result.canceled) {
-      handleUploadMultiple(result.assets);
-    }
-  };
-
-  const handleUploadMultiple = async (assets: ImagePicker.ImagePickerAsset[]) => {
-    setUploading(true);
-    setVideoUrl('');
-
-    const newUrls: string[] = [];
-    let errorCount = 0;
-
-    try {
-      const uploadPromises = assets.map(async (asset) => {
-        if (asset.type === 'video' && asset.duration && asset.duration > 180000) {
-          throw new Error('Video max 3 mins');
-        }
-        return await RecipeService.uploadVideo(asset.uri);
-      });
-
-      const results = await Promise.allSettled(uploadPromises);
-
-      results.forEach((res) => {
-        if (res.status === 'fulfilled') {
-          newUrls.push(res.value);
-        } else {
-          errorCount++;
-        }
-      });
-
-      if (newUrls.length > 0) {
-        setUploadedFiles((prev) => [...prev, ...newUrls]);
-        toastRef.current?.show(`${newUrls.length} files uploaded successfully!`, 'success');
-      }
-
-      if (errorCount > 0) {
-        toastRef.current?.show(`${errorCount} files failed to upload.`, 'error');
-      }
-    } catch (error: any) {
-      toastRef.current?.show(error.message || 'Upload Failed', 'error');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const { isPro, checkCanGenerate, incrementUsage, initialize } = useSubscriptionStore();
-  const addToShoppingList = useShoppingListStore((state) => state.addMultiple);
-  // Removed local showPaywall state as we use imperative presentPaywall
-
-  // ... existing upload code
-
+  // Paywall Logic
   const handlePresentPaywall = async () => {
     const paywallResult = await RevenueCatUI.presentPaywall();
-    // Refresh status if purchased/restored
     if (
       paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
       paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
@@ -192,104 +46,64 @@ export default function GenerateScreen() {
     }
   };
 
-  const handleGenerate = async () => {
-    // 1. Check Quota
-    if (!checkCanGenerate()) {
-      Alert.alert(
-        'Daily Limit Reached 🍳',
-        'You have used your 3 free recipes for today. Upgrade to Pro for unlimited access!',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade to Pro', onPress: handlePresentPaywall },
-        ],
-      );
+  // Logic Hook
+  const {
+    videoUrl,
+    setVideoUrl,
+    uploadedFiles,
+    setUploadedFiles,
+    loading,
+    loadingMessage,
+    uploading,
+    currentRecipe,
+    setCurrentRecipe,
+    removeFile,
+    handleUploadMultiple,
+    generate,
+  } = useRecipeGenerator({
+    preferences,
+    toastRef,
+    onPaywallRequest: handlePresentPaywall,
+  });
+
+  // Media Pickers
+  const handlePickMedia = async () => {
+    if (uploadedFiles.length >= 5) {
+      toastRef.current?.show('Max 5 photos/videos at once.', 'error');
       return;
     }
-
-    let targetUrl = videoUrl.trim();
-    if (uploadedFiles.length > 0) {
-      targetUrl = uploadedFiles.join(',');
-    }
-
-    if (!targetUrl) {
-      toastRef.current?.show('Please paste a link or upload media.', 'info');
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      toastRef.current?.show('Gallery Permission Denied', 'error');
       return;
     }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
+      allowsMultipleSelection: true,
+      selectionLimit: 5 - uploadedFiles.length,
+      quality: 0.5,
+    });
+    if (!result.canceled) handleUploadMultiple(result.assets);
+  };
 
-    // Validate if it's a URL when no files are uploaded
-    if (uploadedFiles.length === 0 && !targetUrl.match(/^https?:\/\//i)) {
-      toastRef.current?.show('Please enter a valid URL (http/https)', 'error');
+  const handleLaunchCamera = async () => {
+    if (uploadedFiles.length >= 5) {
+      toastRef.current?.show('Max 5 photos/videos at a time.', 'error');
       return;
     }
-
-    setLoading(true);
-    setLoadingMessage('Fetching Media...');
-    setCurrentRecipe(null); // Clear previous result
-
-    // Dynamic loading messages
-    const messages = [
-      'Analyzing Visuals...',
-      'Chef is identifying ingredients...',
-      'Crafting the recipe...',
-      'Writing instructions...',
-      'Almost ready to serve...',
-    ];
-    let msgIndex = 0;
-    const interval = setInterval(() => {
-      if (msgIndex < messages.length) {
-        setLoadingMessage(messages[msgIndex]);
-        msgIndex++;
-      }
-    }, 4000);
-
-    try {
-      console.log('Sending to AI, URL:', targetUrl);
-
-      // Inject user preferences
-      const generatedRecipe = await RecipeService.generateFromVideo(targetUrl, preferences);
-
-      const newRecipe: Recipe = {
-        ...generatedRecipe,
-        sourceUrl: targetUrl,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-      };
-
-      setCurrentRecipe(newRecipe);
-      saveRecipe(newRecipe);
-
-      // 2. Increment Usage
-      incrementUsage();
-
-      // HAPTIC FEEDBACK SUCCESS!
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      setUploadedFiles([]);
-      setVideoUrl('');
-      toastRef.current?.show(`Recipe generated! ${!isPro ? '(Free quota used)' : ''}`, 'success');
-    } catch (error: any) {
-      console.error('Error flow:', error);
-
-      let friendlyMsg = 'Processing failed. Please try again.';
-      try {
-        // Try parsing if error message is JSON string
-        const parsed = JSON.parse(error.message);
-        if (parsed.error) friendlyMsg = parsed.error;
-        if (parsed.message) friendlyMsg = parsed.message;
-      } catch (e) {
-        // If not JSON, use raw message
-        friendlyMsg = error.message || friendlyMsg;
-      }
-
-      // Shorten if too long (e.g. raw stack trace)
-      if (friendlyMsg.length > 60) friendlyMsg = friendlyMsg.substring(0, 57) + '...';
-
-      toastRef.current?.show(friendlyMsg, 'error');
-    } finally {
-      clearInterval(interval);
-      setLoading(false);
-      setLoadingMessage('Analyzing...');
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      toastRef.current?.show('Camera Permission Denied', 'error');
+      return;
     }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
+      quality: 0.5,
+      // aspect: [4, 3], // Optional: standard aspect ratio
+    });
+    if (!result.canceled) handleUploadMultiple(result.assets);
   };
 
   // ... renderRecipeCard ... (omitted from replace unless modified)
@@ -537,7 +351,7 @@ export default function GenerateScreen() {
 
           {/* Button Generate */}
           <TouchableOpacity
-            onPress={handleGenerate}
+            onPress={generate}
             disabled={loading || (uploadedFiles.length === 0 && !videoUrl.trim())}
             className={`w-full flex-row items-center justify-center rounded-xl py-4 ${loading ? 'bg-gray-300' : 'bg-red-500 shadow-lg shadow-red-200'}`}
           >

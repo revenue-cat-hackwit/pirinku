@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '@/lib/types';
+import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from 'nativewind';
@@ -24,60 +25,45 @@ const RECIPES_STORAGE_KEY = 'pirinku_local_recipes_v1';
 
 export default function SavedRecipesScreen() {
   const router = useRouter();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const { savedRecipes, isLoading, refreshRecipes, deleteRecipe, saveRecipe, updateRecipe } =
+    useRecipeStorage();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const loadRecipes = async () => {
-    try {
-      const jsonValue = await AsyncStorage.getItem(RECIPES_STORAGE_KEY);
-      if (jsonValue != null) {
-        setRecipes(JSON.parse(jsonValue));
-      } else {
-        setRecipes([]);
-      }
-    } catch (e) {
-      console.error('Failed to load recipes', e);
-    }
-  };
-
   useFocusEffect(
     useCallback(() => {
-      loadRecipes();
+      refreshRecipes();
     }, []),
   );
 
   const onRefresh = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
-    await loadRecipes();
+    await refreshRecipes();
     setRefreshing(false);
   };
 
   // --- Handlers passed to Modal/Components ---
 
   const handleUpdateRecipe = async (updatedRecipe: Recipe) => {
-    const newRecipes = recipes.map((r) => (r.id === updatedRecipe.id ? updatedRecipe : r));
-    setRecipes(newRecipes);
-    await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(newRecipes));
-    setSelectedRecipe(updatedRecipe); // Update modal view
+    await updateRecipe(updatedRecipe);
+    setSelectedRecipe(updatedRecipe); // Update modal view if needed
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert('Sukses', 'Resep berhasil diperbarui!');
+    Alert.alert('Success', 'Recipe updated successfully!');
   };
 
   const handleDeleteRecipe = async (id: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert('Hapus Resep', 'Yakin ingin menghapus resep ini?', [
-      { text: 'Batal', style: 'cancel' },
+    Alert.alert('Delete Recipe', 'Are you sure you want to delete this recipe?', [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Hapus',
+        text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          const newRecipes = recipes.filter((r) => r.id !== id);
-          setRecipes(newRecipes);
-          await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(newRecipes));
+          await deleteRecipe(id);
           if (selectedRecipe?.id === id) setSelectedRecipe(null); // Close modal
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         },
@@ -91,10 +77,10 @@ export default function SavedRecipesScreen() {
 
     const message =
       `🍳 *${recipe.title}*\n\n` +
-      `⏱️ Waktu: ${recipe.time_minutes}m | 🔥 Kalori: ${recipe.calories_per_serving}\n\n` +
-      `🛒 *Bahan-bahan:*\n${ingredientsList}\n\n` +
-      `👨‍🍳 *Cara Membuat:*\n${stepsList}\n\n` +
-      `_Dibuat dengan Aplikasi Pirinku_ 📲`;
+      `⏱️ Time: ${recipe.time_minutes}m | 🔥 Calories: ${recipe.calories_per_serving}\n\n` +
+      `🛒 *Ingredients:*\n${ingredientsList}\n\n` +
+      `👨‍🍳 *Instructions:*\n${stepsList}\n\n` +
+      `_Made with Pirinku App_ 📲`;
 
     try {
       await Share.share({
@@ -118,7 +104,7 @@ export default function SavedRecipesScreen() {
 
       <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
         <Text className="font-visby-bold text-3xl text-gray-900 dark:text-white">
-          Koleksi Resep 📚
+          Recipe Collection 📚
         </Text>
         <View className="flex-row gap-3">
           <TouchableOpacity
@@ -146,7 +132,7 @@ export default function SavedRecipesScreen() {
         className="flex-1 px-5 pt-2"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {recipes.length === 0 ? (
+        {savedRecipes.length === 0 ? (
           <View className="mt-20 items-center justify-center opacity-70">
             <Ionicons name="book-outline" size={80} color="#ccc" />
             <Text className="mt-4 font-visby-bold text-lg text-gray-500 dark:text-gray-400">
@@ -164,7 +150,7 @@ export default function SavedRecipesScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          recipes.map((recipe) => (
+          savedRecipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} onPress={() => setSelectedRecipe(recipe)} />
           ))
         )}

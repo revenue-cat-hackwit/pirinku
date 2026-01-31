@@ -13,7 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { PantryService, PantryItem } from '@/lib/services/pantryService';
+import { RecipeService } from '@/lib/services/recipeService';
 
 const CATEGORIES = ['Dairy', 'Vegetable', 'Fruit', 'Meat', 'Grain', 'Spice', 'Other'];
 
@@ -22,6 +24,7 @@ export default function PantryScreen() {
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   // Add/Edit Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,6 +102,53 @@ export default function PantryScreen() {
     return diffDays;
   };
 
+  const handleCameraScan = async () => {
+    // 1. Pick Image
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.5, // Faster upload
+      allowsEditing: true,
+      aspect: [4, 3],
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    setAnalyzing(true);
+    try {
+      // 2. Upload
+      const publicUrl = await RecipeService.uploadMedia(result.assets[0].uri);
+
+      // 3. Analyze
+      Alert.alert('Analyzing', 'AI is detecting food items...');
+      const detectedItems = await PantryService.analyzeFromImage(publicUrl);
+
+      if (detectedItems.length === 0) {
+        Alert.alert('No items', "AI couldn't find any food items.");
+        return;
+      }
+
+      // 4. Bulk Insert
+      let addedCount = 0;
+      for (const item of detectedItems) {
+        await PantryService.addItem({
+          ingredient_name: item.ingredient_name || 'Unknown Item',
+          quantity: item.quantity || '1',
+          category: item.category || 'Other',
+          expiry_date:
+            item.expiry_date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        });
+        addedCount++;
+      }
+
+      Alert.alert('Success', `Added ${addedCount} items to your pantry!`);
+      loadPantry();
+    } catch (e: any) {
+      Alert.alert('Scan Failed', e.message);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const renderItem = (item: PantryItem) => {
     const daysLeft = getDaysUntilExpiry(item.expiry_date);
     let expiryColor = 'text-gray-500';
@@ -161,9 +211,18 @@ export default function PantryScreen() {
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text className="font-visby-bold text-xl text-gray-900">My Pantry 🍎</Text>
-        <TouchableOpacity onPress={() => setIsModalOpen(true)}>
-          <Ionicons name="add-circle" size={28} color="#CC5544" />
-        </TouchableOpacity>
+        <View className="flex-row gap-4">
+          <TouchableOpacity onPress={handleCameraScan} disabled={analyzing}>
+            {analyzing ? (
+              <ActivityIndicator color="#CC5544" />
+            ) : (
+              <Ionicons name="camera" size={26} color="#4B5563" />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setIsModalOpen(true)}>
+            <Ionicons name="add-circle" size={28} color="#CC5544" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView

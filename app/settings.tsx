@@ -1,14 +1,14 @@
-import { useAuthStore } from '@/lib/store/authStore';
-import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import React from 'react';
+import { useAuthStore } from '@/lib/store/authStore';
+
 import { Alert, Text, TouchableOpacity, View, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 
 import { usePreferencesStore } from '@/lib/store/preferencesStore';
+import { useRouter } from 'expo-router';
 
 const ALLERGIES_OPT = ['Peanuts', 'Seafood', 'Dairy', 'Gluten', 'Eggs', 'Soy'];
 const EQUIPMENT_OPT = ['Oven', 'Blender', 'Air Fryer', 'Microwave', 'Mixer'];
@@ -123,12 +123,11 @@ const PersonalizationSection = () => {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const setCredentials = useAuthStore((state) => state.setCredentials);
   const syncPreferences = usePreferencesStore((state) => state.sync);
 
   React.useEffect(() => {
     syncPreferences();
-  }, []);
+  }, [syncPreferences]);
 
   const handleSignOut = async () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -137,9 +136,8 @@ export default function SettingsScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await supabase.auth.signOut();
-          setCredentials(null, null);
-          router.replace('/(auth)/sign-in');
+          await useAuthStore.getState().signOut();
+          router.replace('/');
         },
       },
     ]);

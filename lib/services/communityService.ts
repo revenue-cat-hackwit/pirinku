@@ -72,7 +72,8 @@ export const CommunityService = {
     if (!userData.user) throw new Error('Not authenticated');
 
     // extract first image if available
-    let imageUrl = 'https://via.placeholder.com/400';
+    let imageUrl =
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop';
     // TODO: logic to extract image from recipe or source
 
     const { error } = await supabase.from('community_posts').insert({
@@ -122,16 +123,14 @@ export const CommunityService = {
     } else {
       // Like
       // Ensure profile exists first (Safety)
-      await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: userData.user.id,
-            email: userData.user.email,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id', ignoreDuplicates: true },
-        );
+      await supabase.from('profiles').upsert(
+        {
+          id: userData.user.id,
+          email: userData.user.email,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id', ignoreDuplicates: true },
+      );
 
       await supabase.from('post_likes').insert({ user_id: userData.user.id, post_id: postId });
       // Increment counter

@@ -80,11 +80,27 @@ export const useRecipeStorage = () => {
     }
   };
 
+  const updateRecipe = async (recipe: Recipe) => {
+    try {
+      // Optimistic Update
+      const newList = savedRecipes.map((r) => (r.id === recipe.id ? recipe : r));
+      setSavedRecipes(newList);
+      await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(newList));
+
+      // Update Cloud
+      await RecipeService.updateRecipe(recipe);
+    } catch (e) {
+      console.error('Update recipe error', e);
+      Alert.alert('Error', 'Failed to update recipe in cloud.');
+    }
+  };
+
   return {
     savedRecipes,
     isLoading: loading,
     saveRecipe,
     deleteRecipe,
+    updateRecipe,
     refreshRecipes: loadRecipes,
   };
 };

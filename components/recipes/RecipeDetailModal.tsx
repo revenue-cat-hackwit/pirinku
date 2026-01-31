@@ -65,7 +65,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
     if (recipe) {
       addToShoppingList(recipe.ingredients, recipe.title);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Sukses', 'Bahan masakan telah ditambahkan ke Daftar Belanja!');
+      Alert.alert('Success', 'Ingredients added to Shopping List!');
     }
   };
 
@@ -233,21 +233,21 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                 <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
                   {displayRecipe.time_minutes}m
                 </Text>
-                <Text className="text-xs text-gray-400">Waktu</Text>
+                <Text className="text-xs text-gray-400">Time</Text>
               </View>
               <View className="w-[1px] bg-gray-200 dark:bg-gray-700" />
               <View className="items-center">
                 <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
                   {displayRecipe.calories_per_serving}
                 </Text>
-                <Text className="text-xs text-gray-400">Kalori</Text>
+                <Text className="text-xs text-gray-400">Calories</Text>
               </View>
               <View className="w-[1px] bg-gray-200 dark:bg-gray-700" />
               <View className="items-center">
                 <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
                   {displayRecipe.servings}
                 </Text>
-                <Text className="text-xs text-gray-400">Porsi</Text>
+                <Text className="text-xs text-gray-400">Servings</Text>
               </View>
             </View>
 
@@ -279,7 +279,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             <View className="mb-6">
               <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
                 <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
-                  🛒 Bahan Utama{' '}
+                  🛒 Main Ingredients{' '}
                   {isEditing && <Text className="text-xs text-blue-500">(Tap to Edit)</Text>}
                 </Text>
                 {!isEditing ? (
@@ -343,7 +343,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             <View className="mb-8">
               <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
                 <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
-                  👨‍🍳 Cara Membuat{' '}
+                  👨‍🍳 Instructions{' '}
                   {isEditing && <Text className="text-xs text-blue-500">(Tap to Edit)</Text>}
                 </Text>
                 {isEditing && (
@@ -421,7 +421,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             {(isEditing || displayRecipe.tips) && (
               <View className="mb-8 rounded-xl border border-amber-100 bg-amber-50 p-4 dark:border-amber-900/30 dark:bg-amber-900/20">
                 <Text className="mb-1 font-visby-bold text-amber-800 dark:text-amber-500">
-                  💡 Tips Chef
+                  💡 Chef&apos;s Tips
                 </Text>
                 {isEditing ? (
                   <TextInput
@@ -447,7 +447,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                 className="mb-8 flex-row items-center justify-center rounded-xl border border-red-100 bg-red-50 py-4 dark:border-red-900/30 dark:bg-red-900/20"
               >
                 <Ionicons name="trash-outline" size={20} color="#EF4444" className="mr-2" />
-                <Text className="ml-2 font-visby-bold text-red-500">Hapus Resep Ini</Text>
+                <Text className="ml-2 font-visby-bold text-red-500">Delete This Recipe</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
