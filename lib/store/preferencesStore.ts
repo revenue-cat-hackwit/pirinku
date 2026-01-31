@@ -8,6 +8,8 @@ interface PreferencesState {
   hasOnboarded: boolean;
   preferences: UserPreferences;
   isLoading: boolean;
+  toggleCuisine: (cuisine: string) => Promise<void>;
+  toggleTastePreference: (preference: string) => Promise<void>;
   toggleAllergy: (allergy: string) => Promise<void>;
   toggleEquipment: (tool: string) => Promise<void>;
   setDietGoal: (goal: string) => Promise<void>;
@@ -16,6 +18,8 @@ interface PreferencesState {
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
+  cuisines: [],
+  tastePreferences: [],
   allergies: [],
   equipment: ['Stove', 'Pan', 'Knife'], // Default basics
   dietGoal: 'balanced',
@@ -30,6 +34,54 @@ export const usePreferencesStore = create<PreferencesState>()(
 
       completeOnboarding: () => set({ hasOnboarded: true }),
 
+      toggleCuisine: async (cuisine) => {
+        // 1. Optimistic Update
+        const state = get();
+        const exists = state.preferences.cuisines.includes(cuisine);
+        const newCuisines = exists
+          ? state.preferences.cuisines.filter((c) => c !== cuisine)
+          : [...state.preferences.cuisines, cuisine];
+
+        set((s) => ({
+          preferences: { ...s.preferences, cuisines: newCuisines },
+        }));
+
+        // 2. Cloud Update
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user) {
+          await supabase
+            .from('profiles')
+            .update({ cuisines: newCuisines })
+            .eq('id', session.user.id);
+        }
+      },
+
+      toggleTastePreference: async (preference) => {
+        // 1. Optimistic Update
+        const state = get();
+        const exists = state.preferences.tastePreferences.includes(preference);
+        const newTastePreferences = exists
+          ? state.preferences.tastePreferences.filter((t) => t !== preference)
+          : [...state.preferences.tastePreferences, preference];
+
+        set((s) => ({
+          preferences: { ...s.preferences, tastePreferences: newTastePreferences },
+        }));
+
+        // 2. Cloud Update
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user) {
+          await supabase
+            .from('profiles')
+            .update({ taste_preferences: newTastePreferences })
+            .eq('id', session.user.id);
+        }
+      },
+
       sync: async () => {
         set({ isLoading: true });
         try {
@@ -40,7 +92,7 @@ export const usePreferencesStore = create<PreferencesState>()(
 
           const { data, error } = await supabase
             .from('profiles')
-            .select('diet_goal, allergies, equipment')
+            .select('diet_goal, cuisines, taste_preferences, allergies, equipment')
             .eq('id', session.user.id)
             .single();
 
@@ -49,6 +101,8 @@ export const usePreferencesStore = create<PreferencesState>()(
               preferences: {
                 ...state.preferences,
                 dietGoal: data.diet_goal || state.preferences.dietGoal,
+                cuisines: data.cuisines || [],
+                tastePreferences: data.taste_preferences || [],
                 allergies: data.allergies || [],
                 equipment: data.equipment || [],
               },

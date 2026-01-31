@@ -88,6 +88,8 @@ export interface ShoppingItem {
 }
 
 export interface UserPreferences {
+  cuisines: string[];
+  tastePreferences: string[];
   allergies: string[];
   equipment: string[];
   dietGoal: string;

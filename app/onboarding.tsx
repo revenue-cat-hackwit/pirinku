@@ -6,20 +6,39 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { usePreferencesStore } from '@/lib/store/preferencesStore';
 import { supabase } from '@/lib/supabase';
+import StepIndicator from '@/components/StepIndicator';
+import SelectableCard from '@/components/SelectableCard';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { preferences, toggleAllergy, toggleEquipment, completeOnboarding } = usePreferencesStore();
+  const {
+    preferences,
+    toggleCuisine,
+    toggleTastePreference,
+    toggleAllergy,
+    toggleEquipment,
+    completeOnboarding,
+  } = usePreferencesStore();
 
-  // Reference Data (Fetched from DB)
-  const [allergiesOpt, setAllergiesOpt] = useState<string[]>([]);
-  const [equipmentOpt, setEquipmentOpt] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  // Reference Data Options - now includes image paths
+  interface RefOption {
+    name: string;
+    image_path: string | null;
+  }
+  const [cuisinesOpt, setCuisinesOpt] = useState<RefOption[]>([]);
+  const [tastePreferencesOpt, setTastePreferencesOpt] = useState<RefOption[]>([]);
+  const [allergiesOpt, setAllergiesOpt] = useState<RefOption[]>([]);
+  const [equipmentOpt, setEquipmentOpt] = useState<RefOption[]>([]);
+  const [otherTools, setOtherTools] = useState('');
 
   useEffect(() => {
     fetchRefData();
@@ -27,18 +46,74 @@ export default function OnboardingScreen() {
 
   const fetchRefData = async () => {
     try {
-      const { data: aData } = await supabase.from('reference_allergies').select('name');
-      if (aData) setAllergiesOpt(aData.map((d: any) => d.name));
+      // Fetch cuisines with image paths
+      const { data: cData } = await supabase.from('reference_cuisines').select('name, image_path');
+      if (cData) setCuisinesOpt(cData);
 
-      const { data: eData } = await supabase.from('reference_equipment').select('name');
-      if (eData) setEquipmentOpt(eData.map((d: any) => d.name));
+      // Fetch taste preferences with image paths
+      const { data: tData } = await supabase
+        .from('reference_taste_preferences')
+        .select('name, image_path');
+      if (tData) setTastePreferencesOpt(tData);
+
+      // Fetch allergies with image paths
+      const { data: aData } = await supabase.from('reference_allergies').select('name, image_path');
+      if (aData) setAllergiesOpt(aData);
+
+      // Fetch equipment with image paths
+      const { data: eData } = await supabase.from('reference_equipment').select('name, image_path');
+      if (eData) setEquipmentOpt(eData);
     } catch (e) {
       console.error('Failed to fetch onboarding references', e);
-      // Fallback if network fails
-      setAllergiesOpt(['Peanuts', 'Seafood', 'Dairy']);
-      setEquipmentOpt(['Oven', 'Blender', 'Stove']);
+      // Fallback data (without images)
+      setCuisinesOpt([
+        { name: 'Indonesia', image_path: null },
+        { name: 'Italian', image_path: null },
+        { name: 'Japanese', image_path: null },
+        { name: 'Chinese', image_path: null },
+        { name: 'Thai', image_path: null },
+        { name: 'Korean', image_path: null },
+      ]);
+      setTastePreferencesOpt([
+        { name: 'Too Spicy', image_path: null },
+        { name: 'Strong Spices / Herbs', image_path: null },
+        { name: 'Too Sweet', image_path: null },
+        { name: 'Too Salty', image_path: null },
+        { name: 'Oily / Fatty Food', image_path: null },
+        { name: 'Sour / Acidic', image_path: null },
+      ]);
+      setAllergiesOpt([
+        { name: 'Peanuts', image_path: null },
+        { name: 'Seafood', image_path: null },
+        { name: 'Dairy / Lactose', image_path: null },
+        { name: 'Gluten', image_path: null },
+      ]);
+      setEquipmentOpt([
+        { name: 'Pressure Cooker', image_path: null },
+        { name: 'Oven', image_path: null },
+        { name: 'Air Fryer', image_path: null },
+        { name: 'Microwave', image_path: null },
+        { name: 'Steamer', image_path: null },
+        { name: 'Chopper', image_path: null },
+        { name: 'Mixer', image_path: null },
+        { name: 'Grill Pan', image_path: null },
+      ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      handleFinish();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -55,79 +130,156 @@ export default function OnboardingScreen() {
     );
   }
 
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <>
+            <Text className="mb-2 text-center font-visby-bold text-2xl text-gray-900">
+              Favorite Cuisines
+            </Text>
+            <Text className="mb-6 text-center font-visby text-sm text-gray-500">
+              Select the regions you love the most
+            </Text>
+
+            <View className="flex-row flex-wrap justify-between gap-y-4">
+              {cuisinesOpt.map((item) => (
+                <SelectableCard
+                  key={item.name}
+                  label={item.name}
+                  imagePath={item.image_path || undefined}
+                  isSelected={preferences.cuisines.includes(item.name)}
+                  onPress={() => toggleCuisine(item.name)}
+                  showBorder={true}
+                />
+              ))}
+            </View>
+          </>
+        );
+
+      case 2:
+        return (
+          <>
+            <Text className="mb-2 text-center font-visby-bold text-2xl text-gray-900">
+              Taste Preferences
+            </Text>
+            <Text className="mb-6 text-center font-visby text-sm text-gray-500">
+              Are there any flavors you dislike?
+            </Text>
+
+            <View className="flex-row flex-wrap justify-between gap-y-4">
+              {tastePreferencesOpt.map((item) => (
+                <SelectableCard
+                  key={item.name}
+                  label={item.name}
+                  imagePath={item.image_path || undefined}
+                  isSelected={preferences.tastePreferences.includes(item.name)}
+                  onPress={() => toggleTastePreference(item.name)}
+                />
+              ))}
+            </View>
+          </>
+        );
+
+      case 3:
+        return (
+          <>
+            <Text className="mb-2 text-center font-visby-bold text-2xl text-gray-900">
+              Food Allergies
+            </Text>
+            <Text className="mb-6 text-center font-visby text-sm text-gray-500">
+              Do you have any food allergies?
+            </Text>
+
+            <View className="flex-row flex-wrap justify-between gap-y-4">
+              {allergiesOpt.map((item) => (
+                <SelectableCard
+                  key={item.name}
+                  label={item.name}
+                  imagePath={item.image_path || undefined}
+                  isSelected={preferences.allergies.includes(item.name)}
+                  onPress={() => toggleAllergy(item.name)}
+                />
+              ))}
+            </View>
+          </>
+        );
+
+      case 4:
+        return (
+          <>
+            <Text className="mb-2 text-center font-visby-bold text-2xl text-gray-900">
+              What&apos;s in Your Kitchen?
+            </Text>
+            <Text className="mb-6 text-center font-visby text-sm text-gray-500">
+              Select the tools you have so we can find recipes that fit your gear
+            </Text>
+
+            <View className="flex-row flex-wrap justify-between gap-y-4">
+              {equipmentOpt.map((item) => (
+                <SelectableCard
+                  key={item.name}
+                  label={item.name}
+                  imagePath={item.image_path || undefined}
+                  isSelected={preferences.equipment.includes(item.name)}
+                  onPress={() => toggleEquipment(item.name)}
+                />
+              ))}
+            </View>
+
+            {/* Other Tools Input */}
+            <View className="mb-20 mt-6">
+              <Text className="mb-2 font-visby-bold text-sm text-gray-700">Other tools</Text>
+              <TextInput
+                value={otherTools}
+                onChangeText={setOtherTools}
+                placeholder="Rice Cooker, Pisau Kecil, Piring Kayu..."
+                placeholderTextColor="#9CA3AF"
+                className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 font-visby text-sm text-gray-900"
+                multiline
+              />
+            </View>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 px-6 pt-10">
-        {/* Header */}
-        <View className="mb-10 items-center">
-          <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-red-100">
-            <Ionicons name="restaurant" size={40} color="#CC5544" />
-          </View>
-          <Text className="mb-2 text-center font-visby-bold text-3xl text-gray-900">
-            Welcome Chef! 👨‍🍳
-          </Text>
-          <Text className="mb-8 text-center font-visby text-base text-gray-500">
-            Let&apos;s personalize your experience
-          </Text>
-        </View>
+      {/* Header with Back Button */}
+      <View className="flex-row items-center justify-between px-6 pt-8">
+        {currentStep > 1 ? (
+          <TouchableOpacity onPress={handleBack} className="p-2">
+            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          </TouchableOpacity>
+        ) : (
+          <View className="w-10" />
+        )}
 
-        {/* 1. Allergies */}
-        <View className="mb-8">
-          <Text className="mb-4 font-visby-bold text-lg text-gray-900">
-            ⛔ Allergies / Restrictions
-          </Text>
-          <View className="flex-row flex-wrap gap-3">
-            {allergiesOpt.map((item) => {
-              const isSelected = preferences.allergies.includes(item);
-              return (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => toggleAllergy(item)}
-                  className={`rounded-full border px-5 py-3 ${isSelected ? 'border-red-500 bg-red-500' : 'border-gray-200 bg-gray-50'}`}
-                >
-                  <Text
-                    className={`font-visby-bold text-sm ${isSelected ? 'text-white' : 'text-gray-600'}`}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        <StepIndicator currentStep={currentStep} totalSteps={4} />
 
-        {/* 2. Equipment */}
-        <View className="mb-10">
-          <Text className="mb-4 font-visby-bold text-lg text-gray-900">🔪 Kitchen Equipment</Text>
-          <View className="flex-row flex-wrap gap-3">
-            {equipmentOpt.map((item) => {
-              const isSelected = preferences.equipment.includes(item);
-              return (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => toggleEquipment(item)}
-                  className={`rounded-full border px-5 py-3 ${isSelected ? 'border-black bg-black' : 'border-gray-200 bg-gray-50'}`}
-                >
-                  <Text
-                    className={`font-visby-bold text-sm ${isSelected ? 'text-white' : 'text-gray-600'}`}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        <View className="w-10" />
+      </View>
 
-        {/* Save Button */}
+      <ScrollView className="flex-1 px-6 pt-8" showsVerticalScrollIndicator={false}>
+        {renderStepContent()}
+      </ScrollView>
+
+      {/* Next Button */}
+      <View className="px-6 pb-8 pt-8">
         <TouchableOpacity
-          onPress={handleFinish}
-          className="mb-10 w-full flex-row items-center justify-center rounded-2xl bg-[#CC5544] py-4 shadow-lg shadow-red-200"
+          onPress={handleNext}
+          className="w-full flex-row items-center justify-center rounded-2xl bg-[#8BD65E] py-4 shadow-lg shadow-green-200"
         >
-          <Text className="mr-2 font-visby-bold text-lg text-white">Let&apos;s Cook</Text>
+          <Text className="mr-2 font-visby-bold text-lg text-white">
+            {currentStep === 4 ? "Let's Cook" : 'Next'}
+          </Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
