@@ -68,4 +68,27 @@ export const PantryService = {
 
     if (error) throw error;
   },
+
+  /**
+   * AI Vision: Analyze pantry image
+   */
+  async analyzeFromImage(imageUrl: string): Promise<Partial<PantryItem>[]> {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase.functions.invoke('analyze-pantry-image', {
+      body: { imageUrl },
+    });
+
+    if (error) {
+      console.error('Analyze Pantry Error:', error);
+      throw error;
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to analyze image');
+    }
+
+    return data.data;
+  },
 };

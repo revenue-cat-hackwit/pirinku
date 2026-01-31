@@ -14,17 +14,7 @@ export default function ProfileLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Profile',
-
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => {
-                router.push('/settings');
-              }}
-            >
-              <Ionicons name="settings-outline" size={24} color="black" />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
       <Stack.Screen name="edit-profile" />

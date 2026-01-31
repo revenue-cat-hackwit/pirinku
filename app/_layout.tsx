@@ -68,6 +68,8 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
         <Stack.Screen name="shopping-list" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="meal-planner" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="pantry" options={{ presentation: 'modal' }} />
       </Stack>
     </GestureHandlerRootView>
   );

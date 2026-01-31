@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { FeedPost } from '@/lib/services/communityService';
 import { useColorScheme } from 'nativewind';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop';
@@ -18,6 +19,7 @@ interface FeedCardProps {
 export const FeedCard: React.FC<FeedCardProps> = ({ item, isLiked = false, onLike, onPress }) => {
   const [liked, setLiked] = useState(isLiked);
   const [likes, setLikes] = useState(item.likes_count);
+  const [isImageLoading, setIsImageLoading] = useState(true);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -35,7 +37,8 @@ export const FeedCard: React.FC<FeedCardProps> = ({ item, isLiked = false, onLik
     onLike();
   };
 
-  const hasValidImage = item.image_url && item.image_url.length > 10;
+  const hasValidImage =
+    item.image_url && item.image_url.length > 10 && !item.image_url.includes('via.placeholder.com');
   const displayImage = hasValidImage ? item.image_url : FALLBACK_IMAGE;
 
   return (
@@ -53,7 +56,17 @@ export const FeedCard: React.FC<FeedCardProps> = ({ item, isLiked = false, onLik
           style={{ flex: 1, width: '100%', height: '100%' }}
           contentFit="cover"
           transition={500}
+          placeholder={require('@/assets/images/icon.png')} // Fallback to app icon
+          placeholderContentFit="contain"
+          onLoadStart={() => setIsImageLoading(true)}
+          onLoad={() => setIsImageLoading(false)}
+          onError={() => setIsImageLoading(false)}
         />
+        {isImageLoading && (
+          <View className="absolute inset-0 bg-gray-100 dark:bg-gray-800" pointerEvents="none">
+            <Skeleton width="100%" height="100%" borderRadius={0} />
+          </View>
+        )}
         <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();

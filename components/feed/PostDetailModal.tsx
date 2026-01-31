@@ -11,7 +11,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { CommunityService, FeedPost } from '@/lib/services/communityService';
@@ -35,6 +35,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
   const [loadingComments, setLoadingComments] = useState(false);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   // Internal like state for modal
   const [liked, setLiked] = useState(false);
@@ -95,7 +96,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 bg-white dark:bg-[#0F0F0F]">
-        <SafeAreaView className="flex-1 bg-white dark:bg-[#0F0F0F]" edges={['top']}>
+        <View className="flex-1 bg-white dark:bg-[#0F0F0F]" style={{ paddingTop: insets.top }}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
@@ -182,7 +183,10 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
             </ScrollView>
 
             {/* Comment Input */}
-            <View className="flex-row items-center border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-[#0F0F0F]">
+            <View
+              className="flex-row items-center border-t border-gray-200 bg-white px-4 pt-4 dark:border-gray-800 dark:bg-[#0F0F0F]"
+              style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+            >
               <TextInput
                 value={newComment}
                 onChangeText={setNewComment}
@@ -197,7 +201,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
       </View>
     </Modal>
   );

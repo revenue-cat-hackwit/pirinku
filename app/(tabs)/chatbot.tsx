@@ -300,7 +300,7 @@ export default function Chatbot() {
     <View className="flex-1">
       <Animated.FlatList
         ref={flatListRef}
-        data={dummyMessages.reverse()}
+        data={messages.length > 0 ? messages.slice().reverse() : dummyMessages.slice().reverse()}
         renderItem={({ item }: { item: Message }) => <ChatMessage message={item} />}
         keyExtractor={(_, index) => index.toString()}
         contentContainerStyle={{

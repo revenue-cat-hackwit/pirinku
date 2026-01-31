@@ -9,7 +9,7 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  FlatList,
+  StyleSheet,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -17,48 +17,161 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
+  withSpring,
+  withSequence,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createAudioPlayer } from 'expo-audio';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { VoiceService } from '@/lib/services/voiceService';
+import * as Haptics from 'expo-haptics';
 
 import { VOICES, SPEEDS } from '@/lib/constants';
-import { Message } from '@/lib/types';
+
+// --- COMPONENTS ---
+
+// 1. Orb Component (Siri Style)
+const VoiceOrb = ({ state }: { state: 'idle' | 'listening' | 'processing' | 'speaking' }) => {
+  // Animation Values
+  const scale = useSharedValue(1);
+  const coreScale = useSharedValue(1);
+  const opacity = useSharedValue(0.8);
+  const rotate = useSharedValue(0);
+
+  useEffect(() => {
+    // Continuous rotation for "alive" feel
+    rotate.value = withRepeat(
+      withTiming(360, { duration: 10000, easing: Easing.linear }),
+      -1,
+      false,
+    );
+
+    switch (state) {
+      case 'idle':
+        scale.value = withRepeat(
+          withTiming(1.1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+          -1,
+          true,
+        );
+        coreScale.value = withSpring(1);
+        opacity.value = withTiming(0.6);
+        break;
+      case 'listening':
+        scale.value = withRepeat(
+          withTiming(1.4, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          -1,
+          true,
+        );
+        coreScale.value = withSpring(1.2);
+        opacity.value = withTiming(0.9);
+        break;
+      case 'processing':
+        scale.value = withRepeat(
+          withSequence(withTiming(1.2, { duration: 200 }), withTiming(0.9, { duration: 200 })),
+          -1,
+          true,
+        );
+        coreScale.value = withSpring(0.8);
+        opacity.value = withTiming(0.5);
+        break;
+      case 'speaking':
+        scale.value = withRepeat(
+          withTiming(1.3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+          -1,
+          true,
+        );
+        coreScale.value = withSequence(
+          withTiming(1.1, { duration: 300 }),
+          withTiming(0.9, { duration: 300 }),
+        );
+        opacity.value = withTiming(1);
+        break;
+    }
+  }, [state]);
+
+  const outerStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const coreStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: coreScale.value }, { rotate: `${rotate.value}deg` }],
+  }));
+
+  // Colors based on state
+  const getColors = () => {
+    switch (state) {
+      case 'listening':
+        return ['#4F46E5', '#3B82F6', '#60A5FA']; // Blue-ish for listening
+      case 'speaking':
+        return ['#CC5544', '#F87171', '#FCA5A5']; // Red/Orange (Brand) for AI speaking
+      case 'processing':
+        return ['#9333EA', '#A855F7', '#D8B4FE']; // Purple for thinking
+      default:
+        return ['#3B82F6', '#60A5FA', '#93C5FD']; // Idle Blue
+    }
+  };
+  const colors = getColors();
+
+  return (
+    <View className="h-80 w-80 items-center justify-center">
+      {/* Outer Glow Ring */}
+      <Animated.View
+        style={[
+          outerStyle,
+          {
+            backgroundColor: colors[2],
+            shadowColor: colors[1],
+            shadowRadius: 40,
+            shadowOpacity: 0.5,
+          },
+        ]}
+        className="absolute h-64 w-64 rounded-full opacity-30 blur-3xl"
+      />
+
+      {/* Middle Ring */}
+      <Animated.View
+        style={[outerStyle, { backgroundColor: colors[1] }]}
+        className="absolute h-56 w-56 rounded-full opacity-40"
+      />
+
+      {/* Core Orb */}
+      <Animated.View
+        style={[coreStyle, styles.orbShadow, { backgroundColor: colors[0] }]}
+        className="h-48 w-48 items-center justify-center overflow-hidden rounded-full border-4 border-white/20"
+      >
+        {/* Inner details to make it look like an Orb */}
+        <View className="absolute top-0 h-1/2 w-full bg-white/10" />
+        <View className="absolute bottom-4 right-4 h-12 w-12 rounded-full bg-white/20 blur-xl" />
+      </Animated.View>
+    </View>
+  );
+};
 
 export default function VoiceModeScreen() {
   const router = useRouter();
   const language = useSettingsStore((state) => state.language);
-  const flatListRef = useRef<FlatList>(null);
   const currentPreviewPlayer = useRef<any>(null);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (currentPreviewPlayer.current) {
-        try {
-          currentPreviewPlayer.current.pause();
-        } catch (e) {}
-      }
-    };
-  }, []);
-
-  // --- Audio Recording Hook ---
-  const handleSilence = async () => {
-    console.log('Silence detected, stopping...');
-    // Use Ref to break circular dependency
-    if (stopRecordingRef.current) {
-      const uri = await stopRecordingRef.current();
-      if (uri) handleVoiceConversation(uri);
-    }
-  };
-
-  // Let's try the Ref approach for circular dependency resolution
+  // --- LOGIC ---
   const stopRecordingRef = useRef<() => Promise<string | null>>(async () => null);
 
+  // States
+  const [status, setStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
+  const [transcript, setTranscript] = useState(''); // What user said
+  const [aiResponse, setAiResponse] = useState('Ngomong apa aja yang kamu punya...');
+
+  // Customization
+  const [showSettings, setShowSettings] = useState(false);
+  const [voiceConfig, setVoiceConfig] = useState({
+    voiceId: 'Wise_Woman',
+    speed: 1.0,
+    emotion: 'happy',
+  });
+
   const handleSilenceCallback = async () => {
-    console.log('Silence detected (Callback)');
+    console.log('Silence detected');
     const uri = await stopRecordingRef.current();
     if (uri) handleVoiceConversation(uri);
   };
@@ -69,65 +182,68 @@ export default function VoiceModeScreen() {
     silenceThreshold: -50,
   });
 
-  // Sync ref
   useEffect(() => {
     stopRecordingRef.current = stopRecording;
-  }, [stopRecording]);
-
-  // States
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 'init', role: 'assistant', text: 'Hello! How can I help you today?' },
-  ]);
-
-  // Customization State
-  const [showSettings, setShowSettings] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
-  const [voiceConfig, setVoiceConfig] = useState({
-    voiceId: 'Wise_Woman', // Default
-    speed: 1.0,
-    emotion: 'happy',
-  });
-
-  // Animation Value for Pulse Effect
-  const imageScale = useSharedValue(1);
-  const opacity = useSharedValue(0.8);
+    if (isRecording) setStatus('listening');
+    // If stopped recording but not yet speaking/processing, we assume processing starts soon inside handleVoiceConversation
+  }, [isRecording, stopRecording]);
 
   useEffect(() => {
-    // Breathing animation loop
-    imageScale.value = withRepeat(
-      withTiming(isRecording ? 1.2 : 1.05, {
-        duration: isRecording ? 800 : 2000,
-        easing: Easing.inOut(Easing.ease),
-      }),
-      -1,
-      true,
-    );
-    opacity.value = withRepeat(
-      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-  }, [isRecording]);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: imageScale.value }],
-      opacity: opacity.value,
+    return () => {
+      cancelRecording();
+      if (currentPreviewPlayer.current)
+        try {
+          currentPreviewPlayer.current.pause();
+        } catch (e) {}
     };
-  });
+  }, []);
 
-  // Wrapper for manual stop
   const handleManualStop = async () => {
     const uri = await stopRecording();
     if (uri) handleVoiceConversation(uri);
   };
 
+  const handleToggleRecord = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (status === 'listening') {
+      handleManualStop();
+    } else if (status === 'speaking' || status === 'processing') {
+      // Interrupt AI
+      if (currentPreviewPlayer.current)
+        try {
+          currentPreviewPlayer.current.pause();
+        } catch (e) {}
+      startRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const playPreview = async (voice: (typeof VOICES)[0]) => {
+    // Stop any previous playback
+    if (currentPreviewPlayer.current) {
+      try {
+        currentPreviewPlayer.current.pause();
+      } catch (e) {
+        console.log('Error pausing previous player:', e);
+      }
+    }
+
+    setVoiceConfig((prev) => ({ ...prev, voiceId: voice.id }));
+
+    // Play local asset
+    try {
+      const player = createAudioPlayer(voice.asset);
+      currentPreviewPlayer.current = player;
+      player.play();
+    } catch (e) {
+      console.error('Preview fail', e);
+    }
+  };
+
+  // MAIN LOGIC
   const handleVoiceConversation = async (audioUri: string) => {
-    setIsProcessing(true);
-    setTranscript('Listening...'); // Before we send, or "Processing"...
-    setTranscript('Processing audio...');
+    setStatus('processing');
 
     try {
       const data = await VoiceService.processAudio(audioUri, {
@@ -139,182 +255,127 @@ export default function VoiceModeScreen() {
 
       const { transcript: text, reply, audio, silent } = data;
 
-      // If silent
       if (silent) {
-        setTranscript('');
-        setIsProcessing(false);
-        startRecording();
+        setStatus('idle');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        startRecording(); // optionally just restart loop
         return;
       }
 
-      // Add to Chat UI
-      const userMsgId = Date.now().toString();
-      setMessages((prev) => [...prev, { id: userMsgId, role: 'user', text: text || '(Audio)' }]);
+      setTranscript(text || '');
+      setAiResponse(reply);
+      setStatus('speaking');
 
-      const aiMsgId = (Date.now() + 1).toString();
-      setMessages((prev) => [...prev, { id: aiMsgId, role: 'assistant', text: reply }]);
-
-      setTranscript('...'); // Clear or small status
-
-      // 3. Play Audio
       if (audio) {
-        // Cleanup old player if any (though usually we wait)
-        if (currentPreviewPlayer.current) {
+        if (currentPreviewPlayer.current)
           try {
             currentPreviewPlayer.current.pause();
           } catch (e) {}
-        }
-
         const player = createAudioPlayer(audio);
         currentPreviewPlayer.current = player;
         player.play();
 
-        // Auto-restart loop
         if (typeof player.addListener === 'function') {
-          const listener = player.addListener('playbackStatusUpdate', (status: any) => {
-            if (status.didJustFinish) {
-              // Cleanup
+          const listener = player.addListener('playbackStatusUpdate', (s: any) => {
+            if (s.didJustFinish) {
               listener.remove();
-              // Restart recording
-              setTimeout(() => startRecording(), 500);
+              setStatus('idle');
             }
           });
         }
       } else {
-        // If no audio (error?), restart anyway
-        setTimeout(() => startRecording(), 1000);
+        setStatus('idle');
       }
     } catch (err: any) {
       console.error('Conversation failed', err);
-      Alert.alert('Error', 'Failed to process audio. Please try again.');
-      startRecording(); // Restart recording on error so user isn't stuck
-    } finally {
-      setIsProcessing(false);
+      setAiResponse('Maaf, saya tidak mendengar dengan jelas.');
+      setStatus('idle');
     }
-  };
-
-  const playPreview = async (voice: (typeof VOICES)[0]) => {
-    setVoiceConfig((prev) => ({ ...prev, voiceId: voice.id, emotion: voice.emotion }));
-
-    // Play local asset to save tokens
-    try {
-      // Stop any previous playback
-      if (currentPreviewPlayer.current) {
-        try {
-          currentPreviewPlayer.current.pause();
-        } catch (e) {
-          console.log('Error pausing previous player:', e);
-        }
-      }
-
-      const player = createAudioPlayer(voice.asset);
-      currentPreviewPlayer.current = player;
-      player.play();
-    } catch (e) {
-      console.error('Preview failed', e);
-      Alert.alert('Error', 'Failed to play preview audio.');
-    }
-  };
-
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isUser = item.role === 'user';
-    return (
-      <View className={`my-2 flex-row ${isUser ? 'justify-end' : 'justify-start'}`}>
-        {!isUser && (
-          <View className="mr-2 h-8 w-8 items-center justify-center rounded-full bg-gray-200">
-            <Ionicons name="restaurant" size={16} color="#666" />
-          </View>
-        )}
-        <View
-          className={`max-w-[75%] rounded-2xl p-4 ${
-            isUser ? 'rounded-tr-sm bg-black' : 'rounded-tl-sm bg-gray-100'
-          }`}
-        >
-          <Text className={`font-visby text-base ${isUser ? 'text-white' : 'text-gray-800'}`}>
-            {item.text}
-          </Text>
-        </View>
-      </View>
-    );
   };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="flex-row items-center justify-between border-b border-gray-50 px-6 pb-2 pt-4">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={28} color="black" />
+      {/* HEADER */}
+      <View className="absolute left-0 right-0 top-[50px] z-10 w-full flex-row items-center justify-between px-6 py-4">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
+        >
+          <Ionicons name="chevron-down" size={24} color="black" />
         </TouchableOpacity>
-        <Text className="font-visby-bold text-xl text-black">Pirinku Voice</Text>
-        <TouchableOpacity onPress={() => setShowSettings(true)}>
-          <Ionicons name="options" size={28} color="black" />
+        <Text className="font-visby-bold text-lg">Pirinku Voice</Text>
+        <TouchableOpacity
+          onPress={() => setShowSettings(true)}
+          className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
+        >
+          <Ionicons name="settings-outline" size={20} color="black" />
         </TouchableOpacity>
       </View>
 
-      {/* Chat Area */}
-      <View className="flex-1 px-4">
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          contentContainerStyle={{ paddingVertical: 20, paddingBottom: 150 }}
-          showsVerticalScrollIndicator={false}
-        />
-
-        {/* Interim Transcript Overlay (Floating) */}
-        {transcript ? (
-          <Animated.View
-            style={{ opacity: 0.8 }}
-            className="absolute bottom-10 left-4 right-4 items-center"
-          >
-            <View className="rounded-full bg-black/70 px-6 py-3">
-              <Text className="font-visby text-white">{transcript}</Text>
-            </View>
+      {/* MAIN CONTENT CENTER */}
+      <View className="flex-1 items-center justify-center px-6">
+        {/* Helper Text (AI Response) */}
+        {!isRecording && status !== 'processing' && (
+          <Animated.View className="absolute top-[15%] mb-10 w-full">
+            <Text className="px-4 text-center font-visby-bold text-2xl leading-8 text-gray-900">
+              {aiResponse}
+            </Text>
           </Animated.View>
-        ) : null}
+        )}
 
-        {/* Processing Indicator */}
-        {isProcessing && (
-          <View className="absolute bottom-4 left-0 right-0 items-center">
-            <Text className="font-visby text-xs text-gray-400">Thinking response...</Text>
-          </View>
+        {/* ORB VISUALIZATION */}
+        <VoiceOrb state={status} />
+
+        {/* User Transcript (Live/Last) */}
+        {(status === 'listening' || status === 'processing') && (
+          <Animated.View className="absolute bottom-[25%] mt-10 rounded-2xl border border-gray-100 bg-gray-50 px-6 py-3 opacity-90">
+            <Text className="text-center font-visby text-lg text-gray-600">
+              {transcript || (status === 'listening' ? 'Mendengarkan...' : 'Berpikir...')}
+            </Text>
+          </Animated.View>
         )}
       </View>
 
-      {/* Footer Controls (Fixed Bottom) */}
-      <View className="absolute bottom-0 w-full flex-row items-center justify-between border-t border-gray-100 bg-white/95 px-10 pb-8 pt-4 shadow-sm">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="h-12 w-12 items-center justify-center rounded-full bg-gray-50"
-        >
-          <Ionicons name="keypad" size={20} color="#666" />
+      {/* FOOTER CONTROLS */}
+      <View className="absolute bottom-12 w-full flex-row items-center justify-evenly px-10">
+        <TouchableOpacity className="h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+          <Ionicons name="keypad-outline" size={24} color="black" />
         </TouchableOpacity>
 
-        {/* Big Mic Button with Pulse Ring */}
-        <View className="-mt-8 items-center justify-center">
-          {isRecording && (
-            <Animated.View
-              style={[animatedStyle]}
-              className="absolute h-24 w-24 rounded-full bg-red-100 opacity-50"
-            />
+        {/* MAIN MIC BUTTON */}
+        <View>
+          {/* Pulse Ring */}
+          {status === 'listening' && (
+            <View className="absolute -left-4 -top-4 h-28 w-28 animate-ping rounded-full border-2 border-[#5FD08F] opacity-30" />
           )}
+
           <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={isRecording ? handleManualStop : startRecording}
-            disabled={isProcessing}
-            className={`h-20 w-20 items-center justify-center rounded-full shadow-lg ${isRecording ? 'bg-red-500 shadow-red-200' : 'bg-[#5FD08F] shadow-green-200'}`}
+            activeOpacity={0.8}
+            onPress={handleToggleRecord}
+            className={`h-20 w-20 transform items-center justify-center rounded-full shadow-xl transition-all 
+              ${status === 'listening' ? 'scale-110 bg-red-500' : 'bg-[#5FD08F]'}
+            `}
+            style={{
+              elevation: 10,
+              shadowColor: status === 'listening' ? '#EF4444' : '#5FD08F',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.4,
+              shadowRadius: 10,
+            }}
           >
-            {isProcessing ? (
-              <ActivityIndicator color="white" />
+            {status === 'processing' ? (
+              <ActivityIndicator color="white" size="large" />
             ) : (
-              <Ionicons name={isRecording ? 'stop' : 'mic'} size={32} color="white" />
+              <Ionicons name={status === 'listening' ? 'stop' : 'mic'} size={36} color="white" />
             )}
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
-          <Ionicons name="menu" size={20} color="#666" />
+        <TouchableOpacity
+          onPress={() => setShowSettings(true)}
+          className="h-14 w-14 items-center justify-center rounded-full bg-gray-100"
+        >
+          <Ionicons name="list-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
 
@@ -360,25 +421,20 @@ export default function VoiceModeScreen() {
                   <TouchableOpacity
                     key={voice.id}
                     onPress={() => playPreview(voice)}
-                    disabled={previewLoading !== null}
                     className={`mr-4 h-40 w-40 items-center justify-center rounded-2xl border-2 p-4 ${
                       voiceConfig.voiceId === voice.id
                         ? 'border-black bg-white'
                         : 'border-transparent bg-gray-200'
                     }`}
                   >
-                    {previewLoading === voice.id ? (
-                      <ActivityIndicator color="black" />
-                    ) : (
-                      <Ionicons
-                        name={
-                          voiceConfig.voiceId === voice.id ? 'radio-button-on' : 'radio-button-off'
-                        }
-                        size={24}
-                        color={voiceConfig.voiceId === voice.id ? 'black' : 'gray'}
-                        style={{ marginBottom: 12 }}
-                      />
-                    )}
+                    <Ionicons
+                      name={
+                        voiceConfig.voiceId === voice.id ? 'radio-button-on' : 'radio-button-off'
+                      }
+                      size={24}
+                      color={voiceConfig.voiceId === voice.id ? 'black' : 'gray'}
+                      style={{ marginBottom: 12 }}
+                    />
                     <Text className="text-center font-visby-bold text-lg text-black">
                       {voice.name.length > 12 ? voice.name.substring(0, 10) + '...' : voice.name}
                     </Text>
@@ -420,3 +476,13 @@ export default function VoiceModeScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  orbShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+});
