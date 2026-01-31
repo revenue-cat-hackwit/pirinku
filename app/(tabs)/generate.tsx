@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Recipe } from '@/lib/types';
 import { RecipeService } from '@/lib/services/recipeService';
-import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -30,7 +29,6 @@ import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 export default function GenerateScreen() {
   // Dependencies
   const preferences = usePreferencesStore((state) => state.preferences);
-  const { savedRecipes, deleteRecipe } = useRecipeStorage();
   const { initialize } = useSubscriptionStore();
   const addToShoppingList = useShoppingListStore((state) => state.addMultiple);
   const toastRef = useRef<ToastRef>(null);
@@ -223,15 +221,6 @@ export default function GenerateScreen() {
           )}
         </>
       )}
-
-      {isBrief && (
-        <TouchableOpacity
-          onPress={() => deleteRecipe(recipe.id!)}
-          className="absolute right-0 top-0 p-2"
-        >
-          <Ionicons name="trash-outline" size={18} color="#ccc" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 
@@ -370,7 +359,7 @@ export default function GenerateScreen() {
         </View>
 
         {/* Result Area */}
-        {currentRecipe ? (
+        {currentRecipe && (
           <View>
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="font-visby-bold text-xl text-gray-900">AI Analysis Result</Text>
@@ -380,17 +369,6 @@ export default function GenerateScreen() {
             </View>
             {renderRecipeCard(currentRecipe)}
           </View>
-        ) : (
-          savedRecipes.length > 0 && (
-            <View>
-              <Text className="mb-3 font-visby-bold text-lg text-gray-900">Recipe History</Text>
-              {savedRecipes.map((item) => (
-                <TouchableOpacity key={item.id} onPress={() => setCurrentRecipe(item)}>
-                  {renderRecipeCard(item, true)}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )
         )}
 
         <View className="h-24" />

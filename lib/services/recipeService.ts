@@ -43,20 +43,47 @@ export const RecipeService = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase.functions.invoke('generate-food-image', {
-      body: { prompt },
-    });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
 
-    if (error) {
-      console.error('Generate Image Error:', error);
+    // Use custom fetch with longer timeout (180s) instead of supabase.functions.invoke
+    // because image generation can take 60-120 seconds
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
+
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-food-image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify({ prompt }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Image generation failed: ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate image');
+      }
+
+      return data.imageUrl;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Image generation timeout - please try again');
+      }
       throw error;
     }
-
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to generate image');
-    }
-
-    return data.imageUrl;
   },
 
   /**
@@ -95,7 +122,7 @@ export const RecipeService = {
    * Now accepts an object with mediaItems or the old videoUrl for backward compat
    */
   async generateFromVideo(
-    input: { videoUrl?: string; mediaItems?: any[] },
+    input: { videoUrl?: string; mediaItems?: any[]; title?: string; description?: string },
     userPreferences?: any,
   ): Promise<Recipe> {
     try {
@@ -106,7 +133,7 @@ export const RecipeService = {
           Authorization: `Bearer ${supabaseAnonKey}`,
         },
         body: JSON.stringify({
-          ...input, // spreads mediaItems or videoUrl
+          ...input, // spreads mediaItems, videoUrl, title, description
           userPreferences: userPreferences,
         }),
       });
@@ -193,11 +220,15 @@ export const RecipeService = {
       throw error;
     }
   },
-  async getUserRecipes(): Promise<Recipe[]> {
+  async getUserRecipes(page = 0, limit = 20): Promise<Recipe[]> {
+    const from = page * limit;
+    const to = from + limit - 1;
+
     const { data, error } = await supabase
       .from('user_recipes')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
     if (error) throw error;
 

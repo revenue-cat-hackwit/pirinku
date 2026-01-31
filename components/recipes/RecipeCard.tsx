@@ -19,7 +19,11 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onPress }) => {
       className="mb-4 flex-row items-center rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:shadow-none"
     >
       <View className="mr-4 h-16 w-16 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/30">
-        <Text className="text-3xl">🍲</Text>
+        {recipe.sourceUrl?.match(/\.(mp4|mov|webm)(\?.*)?$/i) ? (
+          <Ionicons name="videocam" size={30} color="#F97316" />
+        ) : (
+          <Text className="text-3xl">🍲</Text>
+        )}
       </View>
       <View className="flex-1">
         <Text

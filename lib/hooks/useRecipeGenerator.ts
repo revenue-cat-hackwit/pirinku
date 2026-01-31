@@ -7,16 +7,16 @@ import * as Haptics from 'expo-haptics';
 import { Alert } from 'react-native';
 
 interface UseRecipeGeneratorProps {
-  preferences: any;
-  toastRef: any;
-  onPaywallRequest: () => Promise<void>;
+  preferences?: any;
+  toastRef?: any;
+  onPaywallRequest?: () => Promise<void>;
 }
 
 export const useRecipeGenerator = ({
-  preferences,
+  preferences = {},
   toastRef,
-  onPaywallRequest,
-}: UseRecipeGeneratorProps) => {
+  onPaywallRequest = async () => {},
+}: UseRecipeGeneratorProps = {}) => {
   const [videoUrl, setVideoUrl] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -106,6 +106,22 @@ export const useRecipeGenerator = ({
       return;
     }
 
+    // Strict Platform Check (Short-form content only)
+    if (uploadedFiles.length === 0) {
+      const isShortForm = targetUrl.match(
+        /(youtube\.com\/shorts\/|tiktok\.com\/|instagram\.com\/.*(reel|reels)\/)/i,
+      );
+      const isDirectVideo = targetUrl.match(/\.(mp4|mov|webm)$/i);
+
+      if (!isShortForm && !isDirectVideo) {
+        Alert.alert(
+          'Video Format Not Supported',
+          'Please use YouTube Shorts, TikTok, or Instagram Reels URLs for best results. Long videos are not supported.',
+        );
+        return;
+      }
+    }
+
     setLoading(true);
     setLoadingMessage('Fetching Media...');
     setCurrentRecipe(null);
@@ -156,15 +172,21 @@ export const useRecipeGenerator = ({
         preferences,
       );
 
+      // Prefer the Clean/Extracted Video URL (Supabase) for playback
+      let cleanSourceUrl = targetUrl;
+      if (finalMediaItems.length > 0 && finalMediaItems[0].type === 'video') {
+        cleanSourceUrl = finalMediaItems[0].url;
+      }
+
       const newRecipe: Recipe = {
         ...generatedRecipe,
-        sourceUrl: targetUrl,
+        sourceUrl: cleanSourceUrl,
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
       };
 
       setCurrentRecipe(newRecipe);
-      saveRecipe(newRecipe);
+      await saveRecipe(newRecipe);
       incrementUsage();
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -190,6 +212,57 @@ export const useRecipeGenerator = ({
     }
   };
 
+  /**
+   * Complete a placeholder recipe (Generate full details from Title/Desc)
+   */
+  const completeRecipe = async (recipe: Recipe) => {
+    // 1. Check Quota
+    if (!checkCanGenerate()) {
+      Alert.alert('Daily Limit Reached 🍳', 'Upgrade to Pro to generate full recipes!', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade to Pro', onPress: onPaywallRequest },
+      ]);
+      return { success: false };
+    }
+
+    setLoading(true);
+    setLoadingMessage('Completing your recipe...');
+
+    try {
+      // 2. Generate details using Text-Only mode (Backend handles this switch)
+      const generated = await RecipeService.generateFromVideo({
+        title: recipe.title,
+        description: recipe.description,
+      });
+
+      // 3. Merge with existing ID (preserve ID, created_at, user_id)
+      const updatedRecipe: Recipe = {
+        ...generated,
+        id: recipe.id,
+        // user_id handled by backend/auth context
+        imageUrl: generated.imageUrl || recipe.imageUrl, // Prefer generated image if backend returns one, else keep placeholder
+        createdAt: recipe.createdAt,
+        // Ensure sourceUrl is preserved if it exists
+        sourceUrl: recipe.sourceUrl,
+      };
+
+      // 4. Save/Update (Cloud)
+      await saveRecipe(updatedRecipe);
+      setCurrentRecipe(updatedRecipe);
+
+      // 5. Increment Usage
+      incrementUsage();
+
+      return { success: true, data: updatedRecipe };
+    } catch (err: any) {
+      console.error('Complete Recipe Error:', err);
+      toastRef.current?.show(err.message || 'Failed to complete recipe', 'error');
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     videoUrl,
     setVideoUrl,
@@ -203,6 +276,7 @@ export const useRecipeGenerator = ({
     removeFile,
     handleUploadMultiple,
     generate,
+    completeRecipe,
     isPro,
   };
 };

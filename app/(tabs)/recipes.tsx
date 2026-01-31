@@ -2,17 +2,19 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   RefreshControl,
   Alert,
   Share,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '@/lib/types';
 import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
+import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from 'nativewind';
@@ -25,8 +27,21 @@ const RECIPES_STORAGE_KEY = 'pirinku_local_recipes_v1';
 
 export default function SavedRecipesScreen() {
   const router = useRouter();
-  const { savedRecipes, isLoading, refreshRecipes, deleteRecipe, saveRecipe, updateRecipe } =
-    useRecipeStorage();
+  const {
+    savedRecipes,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    refreshRecipes,
+    loadMore,
+    deleteRecipe,
+    saveRecipe,
+    updateRecipe,
+  } = useRecipeStorage();
+
+  // Use generator hook for completing recipes
+  const { completeRecipe } = useRecipeGenerator();
+
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -53,6 +68,16 @@ export default function SavedRecipesScreen() {
     setSelectedRecipe(updatedRecipe); // Update modal view if needed
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Success', 'Recipe updated successfully!');
+  };
+
+  const handleGenerateFull = async (recipe: Recipe) => {
+    const result = await completeRecipe(recipe);
+    if (result && result.success && result.data) {
+      // Update the list view and modal view with the new data
+      await updateRecipe(result.data);
+      setSelectedRecipe(result.data);
+      Alert.alert('Recipe Completed', 'Your recipe details are ready! 👨‍🍳');
+    }
   };
 
   const handleDeleteRecipe = async (id: string) => {
@@ -91,6 +116,43 @@ export default function SavedRecipesScreen() {
     }
   };
 
+  const renderFooter = () => {
+    if (!isLoadingMore) return <View className="h-24" />;
+    return (
+      <View className="h-24 items-center justify-center p-4">
+        <ActivityIndicator size="small" color="#CC5544" />
+      </View>
+    );
+  };
+
+  const renderEmpty = () => {
+    if (isLoading) {
+      return (
+        <View className="mt-20 items-center justify-center">
+          <ActivityIndicator size="large" color="#CC5544" />
+        </View>
+      );
+    }
+    return (
+      <View className="mt-20 items-center justify-center opacity-70">
+        <Ionicons name="book-outline" size={80} color="#ccc" />
+        <Text className="mt-4 font-visby-bold text-lg text-gray-500 dark:text-gray-400">
+          No recipes saved yet
+        </Text>
+        <Text className="mb-6 w-3/4 text-center font-visby text-gray-400 dark:text-gray-500">
+          Create your first AI-powered recipe from any video or photo!
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/generate')}
+          className="flex-row items-center rounded-full bg-red-500 px-6 py-3 shadow-lg shadow-red-200 dark:shadow-none"
+        >
+          <Ionicons name="add-circle" size={20} color="white" style={{ marginRight: 8 }} />
+          <Text className="font-visby-bold text-white">Create My First Recipe</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-[#0F0F0F]">
       <RecipeDetailModal
@@ -100,6 +162,7 @@ export default function SavedRecipesScreen() {
         onUpdate={handleUpdateRecipe}
         onDelete={handleDeleteRecipe}
         onShare={handleShareRecipe}
+        onGenerateFull={handleGenerateFull}
       />
 
       <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
@@ -128,34 +191,19 @@ export default function SavedRecipesScreen() {
         </View>
       </View>
 
-      <ScrollView
-        className="flex-1 px-5 pt-2"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {savedRecipes.length === 0 ? (
-          <View className="mt-20 items-center justify-center opacity-70">
-            <Ionicons name="book-outline" size={80} color="#ccc" />
-            <Text className="mt-4 font-visby-bold text-lg text-gray-500 dark:text-gray-400">
-              No recipes saved yet
-            </Text>
-            <Text className="mb-6 w-3/4 text-center font-visby text-gray-400 dark:text-gray-500">
-              Create your first AI-powered recipe from any video or photo!
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.push('/(tabs)/generate')}
-              className="flex-row items-center rounded-full bg-red-500 px-6 py-3 shadow-lg shadow-red-200 dark:shadow-none"
-            >
-              <Ionicons name="add-circle" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text className="font-visby-bold text-white">Create My First Recipe</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          savedRecipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} onPress={() => setSelectedRecipe(recipe)} />
-          ))
+      <FlatList
+        data={savedRecipes}
+        keyExtractor={(item) => item.id || Math.random().toString()}
+        renderItem={({ item }) => (
+          <RecipeCard recipe={item} onPress={() => setSelectedRecipe(item)} />
         )}
-        <View className="h-24" />
-      </ScrollView>
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
+      />
     </SafeAreaView>
   );
 }

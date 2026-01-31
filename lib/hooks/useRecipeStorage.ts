@@ -9,26 +9,49 @@ const RECIPES_STORAGE_KEY = 'pirinku_local_recipes_v1';
 export const useRecipeStorage = () => {
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     loadRecipes();
   }, []);
 
-  const loadRecipes = async () => {
+  const loadRecipes = async (refresh = false) => {
     try {
-      setLoading(true);
-      // 1. Load Local Cache first for speed
-      const jsonValue = await AsyncStorage.getItem(RECIPES_STORAGE_KEY);
-      if (jsonValue != null) {
-        setSavedRecipes(JSON.parse(jsonValue));
+      if (refresh) {
+        setLoading(true);
+        setPage(0);
+        setHasMore(true);
+      } else {
+        // Initial load check cache
       }
 
-      // 2. Fetch from Cloud (Source of Truth)
+      // If refresh, we want page 0.
+      const targetPage = refresh ? 0 : 0;
+
+      // 1. Load Local Cache first ONLY on initial full reload
+      if (refresh) {
+        const jsonValue = await AsyncStorage.getItem(RECIPES_STORAGE_KEY);
+        if (jsonValue != null) {
+          setSavedRecipes(JSON.parse(jsonValue));
+        }
+      }
+
+      // 2. Fetch from Cloud
       try {
-        const cloudRecipes = await RecipeService.getUserRecipes();
-        // Update State & Cache
+        const cloudRecipes = await RecipeService.getUserRecipes(targetPage, PAGE_SIZE);
+
+        if (cloudRecipes.length < PAGE_SIZE) setHasMore(false);
+        else setHasMore(true);
+
         setSavedRecipes(cloudRecipes);
-        await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(cloudRecipes));
+
+        // Only cache the first page to keep app fast on startup
+        if (targetPage === 0) {
+          await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(cloudRecipes));
+        }
       } catch (cloudError) {
         console.log('Cloud sync failed, using local cache:', cloudError);
       }
@@ -36,6 +59,27 @@ export const useRecipeStorage = () => {
       console.error('Failed to load recipes', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!hasMore || loading || loadingMore) return;
+
+    try {
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      const newRecipes = await RecipeService.getUserRecipes(nextPage, PAGE_SIZE);
+
+      if (newRecipes.length < PAGE_SIZE) setHasMore(false);
+
+      if (newRecipes.length > 0) {
+        setSavedRecipes((prev) => [...prev, ...newRecipes]);
+        setPage(nextPage);
+      }
+    } catch (e) {
+      console.error('Load more failed', e);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -98,9 +142,12 @@ export const useRecipeStorage = () => {
   return {
     savedRecipes,
     isLoading: loading,
+    isLoadingMore: loadingMore,
+    hasMore,
     saveRecipe,
     deleteRecipe,
     updateRecipe,
-    refreshRecipes: loadRecipes,
+    refreshRecipes: () => loadRecipes(true),
+    loadMore,
   };
 };

@@ -5,8 +5,12 @@ export const AIService = {
   /**
    * Send message to AI Edge Function
    */
-  async sendMessage(messages: Message[], token = supabaseAnonKey) {
-    // Filter messages to only send role and content (clean payload)
+  async sendMessage(messages: Message[]) {
+    // 1. Get User Token
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token || supabaseAnonKey;
+
+    // Filter messages
     const apiMessages = messages.map((msg) => ({
       role: msg.role,
       content: msg.content,
@@ -18,6 +22,7 @@ export const AIService = {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          apikey: supabaseAnonKey, // Critical for Gateway
         },
         body: JSON.stringify({
           messages: apiMessages,

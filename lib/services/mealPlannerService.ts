@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
 import { Recipe } from '@/lib/types';
 
 export interface MealPlan {
@@ -104,11 +104,43 @@ export const MealPlannerService = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) throw new Error('Not authenticated');
 
-    const { data, error } = await supabase.functions.invoke('generate-weekly-plan', {
-      body: { startDate },
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    if (!token) throw new Error('No access token found');
+
+    console.log('Generating plan for:', startDate);
+
+    // Use direct fetch for better reliability/debugging
+    // Ensure no double slashes if supabaseUrl ends with /
+    const baseUrl = supabaseUrl.replace(/\/$/, '');
+    const functionUrl = `${baseUrl}/functions/v1/generate-weekly-plan`;
+
+    console.log('[MealPlanner] Fetching:', functionUrl);
+    console.log('[MealPlanner] Token Prefix:', token.substring(0, 10) + '...');
+    console.log('[MealPlanner] Anon Key Prefix:', supabaseAnonKey.substring(0, 10) + '...');
+
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // Send User Token for RLS
+        apikey: supabaseAnonKey,
+      },
+      body: JSON.stringify({ startDate }),
     });
 
-    if (error) throw error;
+    if (!response.ok) {
+      const text = await response.text();
+      let errMsg = text;
+      try {
+        const json = JSON.parse(text);
+        errMsg = json.message || json.error || text;
+      } catch (e) {}
+      throw new Error(`Server Error: ${errMsg}`);
+    }
+
+    const data = await response.json();
     if (!data.success) throw new Error(data.error || 'Failed to generate plan');
   },
 };

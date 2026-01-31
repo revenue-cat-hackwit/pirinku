@@ -211,24 +211,58 @@ export default function PantryScreen() {
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text className="font-visby-bold text-xl text-gray-900">My Pantry 🍎</Text>
-        <View className="flex-row gap-4">
-          <TouchableOpacity onPress={handleCameraScan} disabled={analyzing}>
-            {analyzing ? (
-              <ActivityIndicator color="#CC5544" />
-            ) : (
-              <Ionicons name="camera" size={26} color="#4B5563" />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setIsModalOpen(true)}>
-            <Ionicons name="add-circle" size={28} color="#CC5544" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => setIsModalOpen(true)}>
+          <Ionicons name="add-circle" size={28} color="#CC5544" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         className="flex-1 px-5 pt-4"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        {/* AI Camera Scan Feature Card - Prominent when empty */}
+        {items.length === 0 && !loading && (
+          <TouchableOpacity
+            onPress={handleCameraScan}
+            disabled={analyzing}
+            className="mb-6 overflow-hidden rounded-3xl shadow-lg"
+            style={{
+              shadowColor: '#CC5544',
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 8,
+            }}
+          >
+            <View
+              className="p-8"
+              style={{
+                backgroundColor: '#CC5544',
+              }}
+            >
+              <View className="items-center">
+                <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-white/20">
+                  {analyzing ? (
+                    <ActivityIndicator size="large" color="white" />
+                  ) : (
+                    <Ionicons name="camera" size={40} color="white" />
+                  )}
+                </View>
+                <Text className="mb-2 text-center font-visby-bold text-2xl text-white">
+                  {analyzing ? 'Analyzing...' : 'Scan Your Pantry'}
+                </Text>
+                <Text className="mb-4 text-center font-visby text-sm text-white/90">
+                  Use AI to instantly detect and add all your ingredients with one photo
+                </Text>
+                <View className="flex-row items-center rounded-full bg-white/20 px-4 py-2">
+                  <Ionicons name="sparkles" size={16} color="white" style={{ marginRight: 6 }} />
+                  <Text className="font-visby-bold text-xs text-white">Powered by AI Vision</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Expiring Soon Section if any */}
         {items.some((i) => (getDaysUntilExpiry(i.expiry_date) || 100) <= 3) && (
           <View className="mb-6">
@@ -242,16 +276,44 @@ export default function PantryScreen() {
         {loading ? (
           <ActivityIndicator color="#CC5544" />
         ) : items.length === 0 ? (
-          <View className="items-center justify-center py-10 opacity-50">
-            <Ionicons name="basket-outline" size={64} color="#ccc" />
-            <Text className="mt-4 font-visby text-gray-500">Your pantry is empty.</Text>
+          <View className="items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white py-12">
+            <Ionicons name="basket-outline" size={64} color="#D1D5DB" />
+            <Text className="mt-4 font-visby-bold text-base text-gray-700">
+              Your pantry is empty
+            </Text>
+            <Text className="mt-1 font-visby text-sm text-gray-500">
+              Scan or add items to get started
+            </Text>
           </View>
         ) : (
           items.filter((i) => (getDaysUntilExpiry(i.expiry_date) || 100) > 3).map(renderItem)
         )}
 
-        <View className="h-20" />
+        <View className="h-24" />
       </ScrollView>
+
+      {/* Floating Camera Button - Shows when there are items */}
+      {items.length > 0 && (
+        <TouchableOpacity
+          onPress={handleCameraScan}
+          disabled={analyzing}
+          className="absolute bottom-6 right-6 h-16 w-16 items-center justify-center rounded-full shadow-xl"
+          style={{
+            backgroundColor: '#CC5544',
+            shadowColor: '#CC5544',
+            shadowOpacity: 0.4,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 8,
+          }}
+        >
+          {analyzing ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Ionicons name="camera" size={28} color="white" />
+          )}
+        </TouchableOpacity>
+      )}
 
       {/* ADD ITEM MODAL */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
