@@ -19,8 +19,8 @@ export default function SelectableCard({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`w-[47%] overflow-hidden rounded-2xl border-2 bg-white ${
-        isSelected ? 'border-[#8BD65E]' : 'border-gray-200'
+      className={`w-[47%] overflow-hidden rounded-2xl ${
+        isSelected ? 'border-[#8BD65E] bg-green-100' : 'border-gray-200 bg-white'
       }`}
       style={{
         shadowColor: '#000',
@@ -35,7 +35,7 @@ export default function SelectableCard({
         {imagePath ? (
           <Image
             source={{ uri: imagePath }}
-            className="h-full w-full rounded-xl border-2 border-gray-200"
+            className="h-full w-full rounded-xl"
             resizeMode="cover"
           />
         ) : (
