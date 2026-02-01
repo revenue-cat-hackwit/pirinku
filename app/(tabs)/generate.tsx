@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Recipe } from '@/lib/types';
 import { RecipeService } from '@/lib/services/recipeService';
-import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,14 +25,22 @@ import * as Haptics from 'expo-haptics';
 import { ChefLoading } from '@/components/ChefLoading';
 
 import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
+import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
+import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
 
 export default function GenerateScreen() {
   // Dependencies
   const preferences = usePreferencesStore((state) => state.preferences);
-  const { savedRecipes, deleteRecipe } = useRecipeStorage();
   const { initialize } = useSubscriptionStore();
   const addToShoppingList = useShoppingListStore((state) => state.addMultiple);
   const toastRef = useRef<ToastRef>(null);
+  
+  // Storage for manual saving
+  const { saveRecipe } = useRecipeStorage();
+
+  // Manual Creation State
+  const [manualModalVisible, setManualModalVisible] = useState(false);
+  const [tempManualRecipe, setTempManualRecipe] = useState<Recipe | null>(null);
 
   // Paywall Logic
   const handlePresentPaywall = async () => {
@@ -223,15 +230,6 @@ export default function GenerateScreen() {
           )}
         </>
       )}
-
-      {isBrief && (
-        <TouchableOpacity
-          onPress={() => deleteRecipe(recipe.id!)}
-          className="absolute right-0 top-0 p-2"
-        >
-          <Ionicons name="trash-outline" size={18} color="#ccc" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 
@@ -239,13 +237,13 @@ export default function GenerateScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* LOADING OVERLAY */}
       {loading && <ChefLoading status={loadingMessage} />}
-
+      
       <ScrollView className="flex-1 px-4 pt-4">
         {/* Header */}
         <View className="mb-6">
           <Text className="font-visby-bold text-3xl text-gray-900">AI Chef ‍🍳</Text>
           <Text className="mt-1 font-visby text-base text-gray-500">
-            Paste link or upload food photos/videos!
+            Paste link, upload photos, or create manually!
           </Text>
         </View>
 
@@ -370,7 +368,7 @@ export default function GenerateScreen() {
         </View>
 
         {/* Result Area */}
-        {currentRecipe ? (
+        {currentRecipe && (
           <View>
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="font-visby-bold text-xl text-gray-900">AI Analysis Result</Text>
@@ -380,17 +378,6 @@ export default function GenerateScreen() {
             </View>
             {renderRecipeCard(currentRecipe)}
           </View>
-        ) : (
-          savedRecipes.length > 0 && (
-            <View>
-              <Text className="mb-3 font-visby-bold text-lg text-gray-900">Recipe History</Text>
-              {savedRecipes.map((item) => (
-                <TouchableOpacity key={item.id} onPress={() => setCurrentRecipe(item)}>
-                  {renderRecipeCard(item, true)}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )
         )}
 
         <View className="h-24" />

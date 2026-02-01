@@ -2,6 +2,7 @@ import { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { create } from 'zustand';
 import { AuthService } from '../services/authService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthState {
   session: Session | null;
@@ -41,6 +42,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
 
   signOut: async () => {
     await AuthService.signOut();
+
+    // Clear persisted caches
+    const RECIPES_STORAGE_KEY = 'pirinku_local_recipes_v1';
+    await AsyncStorage.removeItem(RECIPES_STORAGE_KEY);
+
     set({ session: null, user: null });
   },
 
