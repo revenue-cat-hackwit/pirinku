@@ -148,7 +148,7 @@ export default function OnboardingScreen() {
                   key={item.name}
                   label={item.name}
                   imagePath={item.image_path || undefined}
-                  isSelected={preferences.cuisines.includes(item.name)}
+                  isSelected={preferences.cuisines?.includes(item.name) ?? false}
                   onPress={() => toggleCuisine(item.name)}
                   showBorder={true}
                 />
@@ -173,7 +173,7 @@ export default function OnboardingScreen() {
                   key={item.name}
                   label={item.name}
                   imagePath={item.image_path || undefined}
-                  isSelected={preferences.tastePreferences.includes(item.name)}
+                  isSelected={preferences.tastePreferences?.includes(item.name) ?? false}
                   onPress={() => toggleTastePreference(item.name)}
                 />
               ))}
@@ -197,7 +197,7 @@ export default function OnboardingScreen() {
                   key={item.name}
                   label={item.name}
                   imagePath={item.image_path || undefined}
-                  isSelected={preferences.allergies.includes(item.name)}
+                  isSelected={preferences.allergies?.includes(item.name) ?? false}
                   onPress={() => toggleAllergy(item.name)}
                 />
               ))}
@@ -221,7 +221,7 @@ export default function OnboardingScreen() {
                   key={item.name}
                   label={item.name}
                   imagePath={item.image_path || undefined}
-                  isSelected={preferences.equipment.includes(item.name)}
+                  isSelected={preferences.equipment?.includes(item.name) ?? false}
                   onPress={() => toggleEquipment(item.name)}
                 />
               ))}
