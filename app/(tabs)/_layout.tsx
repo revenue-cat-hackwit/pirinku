@@ -1,13 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/lib/store/authStore';
+import { usePreferencesStore } from '@/lib/store/preferencesStore';
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 
 export default function TabsLayout() {
   const session = useAuthStore((state) => state.session);
+  const hasOnboarded = usePreferencesStore((state) => state.hasOnboarded);
 
   if (!session) {
     return <Redirect href="/sign-in" />;
+  }
+
+  // Redirect to onboarding if user hasn't completed it
+  if (!hasOnboarded) {
+    return <Redirect href="/onboarding" />;
   }
 
   return (
