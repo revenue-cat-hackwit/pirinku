@@ -247,6 +247,21 @@ export const useRecipeGenerator = ({
         description: recipe.description,
       });
 
+      // 2.5 Auto-Generate Image (Enhancement)
+      // Only generate if no image exists
+      if (!recipe.imageUrl) {
+        setLoadingMessage('Plating your dish... (Generating Image)');
+        try {
+          const imagePrompt = `${generated.title}, ${generated.description?.slice(0, 50)}. Food photography, 8k, highly detailed, delicious, professional lighting.`;
+          const generatedImageUrl = await RecipeService.generateImage(imagePrompt);
+          if (generatedImageUrl) {
+            generated.imageUrl = generatedImageUrl;
+          }
+        } catch (imgError) {
+          console.warn('Auto-image generation failed during completion', imgError);
+        }
+      }
+
       // 3. Merge with existing ID (preserve ID, created_at, user_id)
       const updatedRecipe: Recipe = {
         ...generated,

@@ -23,6 +23,7 @@ import { usePreferencesStore } from '@/lib/store/preferencesStore';
 import * as Haptics from 'expo-haptics';
 
 import { ChefLoading } from '@/components/ChefLoading';
+import { MagicStar } from 'iconsax-react-native';
 
 import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
@@ -291,8 +292,12 @@ export default function GenerateScreen() {
         {/* Option 1: AI Magic (Expanded) */}
         <View className="mb-6 rounded-3xl border border-gray-100 bg-white p-6 shadow-xl shadow-gray-100/50">
           <View className="mb-4 flex-row items-center gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#8BD65E] bg-gradient-to-tr from-green-400 to-green-600">
-              <Ionicons name="sparkles" size={20} color="white" />
+            <View className="h-10 w-10 items-center justify-center">
+              <ExpoImage
+                source={require('@/assets/images/cooki.png')}
+                style={{ width: 40, height: 40 }}
+                contentFit="contain"
+              />
             </View>
             <Text className="font-visby-bold text-xl text-gray-900">Magic Import (AI)</Text>
           </View>

@@ -12,7 +12,8 @@ interface CustomAlertModalProps {
   confirmText?: string;
   cancelText?: string;
   type?: 'default' | 'destructive';
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: any;
+  showCancel?: boolean;
 }
 
 export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
@@ -25,6 +26,7 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
   cancelText = 'Cancel',
   type = 'default',
   icon = 'alert-circle',
+  showCancel = true,
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -41,11 +43,15 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
                 : 'bg-gray-50 dark:bg-gray-800'
             }`}
           >
-            <Ionicons
-              name={icon}
-              size={32}
-              color={type === 'destructive' ? '#EF4444' : isDark ? 'white' : 'black'}
-            />
+            {typeof icon === 'string' ? (
+              <Ionicons
+                name={icon as any}
+                size={32}
+                color={type === 'destructive' ? '#EF4444' : isDark ? 'white' : 'black'}
+              />
+            ) : (
+              icon
+            )}
           </View>
 
           {/* Text */}
@@ -58,12 +64,16 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
 
           {/* Buttons */}
           <View className="flex-row gap-3">
-            <TouchableOpacity
-              onPress={onClose}
-              className="flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white py-3.5 active:bg-gray-50 dark:border-gray-700 dark:bg-transparent"
-            >
-              <Text className="font-visby-bold text-gray-700 dark:text-gray-300">{cancelText}</Text>
-            </TouchableOpacity>
+            {showCancel && (
+              <TouchableOpacity
+                onPress={onClose}
+                className="flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white py-3.5 active:bg-gray-50 dark:border-gray-700 dark:bg-transparent"
+              >
+                <Text className="font-visby-bold text-gray-700 dark:text-gray-300">
+                  {cancelText}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={() => {

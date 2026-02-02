@@ -26,6 +26,8 @@ import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 import { useShoppingListStore } from '@/lib/store/shoppingListStore';
 import { PantryService, PantryItem } from '@/lib/services/pantryService';
 import * as Haptics from 'expo-haptics';
+import { CustomAlertModal } from '@/components/CustomAlertModal';
+import { TickCircle, Danger, Trash, ShoppingCart, MagicStar } from 'iconsax-react-native';
 
 // Format Date Utils
 const getDayName = (date: Date) => {
@@ -87,6 +89,45 @@ function MealPlannerContent() {
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
   const [addingToShoppingList, setAddingToShoppingList] = useState(false);
 
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'default' | 'destructive';
+    icon?: any;
+    confirmText?: string;
+    showCancel?: boolean;
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    confirmText: 'OK',
+    showCancel: false,
+  });
+
+  const showAlert = (config: {
+    title: string;
+    message: string;
+    type?: 'default' | 'destructive';
+    icon?: any;
+    confirmText?: string;
+    showCancel?: boolean;
+    onConfirm?: () => void;
+  }) => {
+    setAlertConfig({
+      visible: true,
+      confirmText: 'OK',
+      showCancel: false,
+      ...config,
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
   // Generate 14 days - moved to useMemo to avoid recreation on every render
   const dates = useMemo(() => {
     return Array.from({ length: 14 }, (_, i) => {
@@ -146,7 +187,7 @@ function MealPlannerContent() {
       setIsAddModalOpen(false);
       loadData(); // Refresh
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showAlert({ title: 'Error', message: e.message, type: 'destructive', icon: 'alert-circle' });
     }
   };
 
@@ -198,7 +239,12 @@ function MealPlannerContent() {
     setLoading(true);
     try {
       await MealPlannerService.generateWeeklyPlan(formatDate(new Date()), prefs);
-      Alert.alert('Success', 'Weekly meal plan created!');
+      showAlert({
+        title: 'Success',
+        message: 'Weekly meal plan created!',
+        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+        type: 'default',
+      });
       setIsAutoPlanModalOpen(false);
       loadData();
     } catch (e: any) {
@@ -208,7 +254,12 @@ function MealPlannerContent() {
       // Clean up common technical prefixes if present
       errorMsg = errorMsg.replace('Server Error: ', '');
 
-      Alert.alert('Oops!', errorMsg);
+      showAlert({
+        title: 'Oops!',
+        message: errorMsg,
+        type: 'destructive',
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+      });
     } finally {
       setLoading(false);
     }
@@ -226,7 +277,11 @@ function MealPlannerContent() {
       if (updatedRecipe.id) {
         await RecipeService.updateRecipe(updatedRecipe);
         setSelectedRecipe(updatedRecipe);
-        Alert.alert('Success', 'Recipe updated!');
+        showAlert({
+          title: 'Success',
+          message: 'Recipe updated!',
+          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+        });
       } else {
         // Create new recipe
         const result = await RecipeService.saveRecipe(updatedRecipe);
@@ -239,39 +294,51 @@ function MealPlannerContent() {
             targetMealType,
           );
           setSelectedRecipe(null); // Close modal
-          Alert.alert('Success', 'Recipe created and added to meal plan!');
+          showAlert({
+            title: 'Success',
+            message: 'Recipe created and added to meal plan!',
+            icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+          });
         }
       }
 
       loadData(); // Refresh meal plans
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showAlert({
+        title: 'Error',
+        message: e.message,
+        type: 'destructive',
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+      });
     }
   };
 
   const handleDeleteRecipe = async (id: string) => {
-    Alert.alert(
-      'Delete Recipe',
-      'This will delete the recipe from your collection. The meal plan entry will remain but show as "Recipe Deleted".',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await RecipeService.deleteRecipe(id);
-              setSelectedRecipe(null);
-              loadData();
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            } catch (e: any) {
-              Alert.alert('Error', e.message);
-            }
-          },
-        },
-      ],
-    );
+    showAlert({
+      title: 'Delete Recipe',
+      message:
+        'This will delete the recipe from your collection. The meal plan entry will remain but show as "Recipe Deleted".',
+      type: 'destructive',
+      icon: <Trash size={32} color="#EF4444" variant="Bold" />,
+      showCancel: true,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
+          await RecipeService.deleteRecipe(id);
+          setSelectedRecipe(null);
+          loadData();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (e: any) {
+          showAlert({
+            title: 'Error',
+            message: e.message,
+            type: 'destructive',
+            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          });
+        }
+      },
+    });
   };
 
   const handleShareRecipe = async (recipe: Recipe) => {
@@ -297,7 +364,11 @@ function MealPlannerContent() {
     if (result && result.success && result.data) {
       setSelectedRecipe(result.data);
       loadData(); // Refresh to show completed recipe in meal plan
-      Alert.alert('Recipe Completed', 'Your recipe details are ready! 👨‍🍳');
+      showAlert({
+        title: 'Recipe Completed',
+        message: 'Your recipe details are ready! 👨‍🍳',
+        icon: <MagicStar size={32} color="#8BD65E" variant="Bold" />,
+      });
     }
   };
 
@@ -318,7 +389,12 @@ function MealPlannerContent() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error('Image generation failed:', error);
-      Alert.alert('Failed', 'Could not generate image. Please try again.');
+      showAlert({
+        title: 'Failed',
+        message: 'Could not generate image. Please try again.',
+        type: 'destructive',
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+      });
     } finally {
       setGeneratingImages((prev) => {
         const newSet = new Set(prev);
@@ -334,6 +410,15 @@ function MealPlannerContent() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
+      if (mealPlans.length === 0) {
+        showAlert({
+          title: 'No Meals Planned',
+          message: 'Your weekly plan is empty. Generate or add some meals first!',
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        });
+        return;
+      }
+
       // Get all unique ingredients from this week's meal plans
       const allIngredients: { name: string; quantity?: number; unit?: string }[] = [];
       const ingredientMap = new Map<string, { quantity: number; unit: string }>();
@@ -344,16 +429,24 @@ function MealPlannerContent() {
             // Simple ingredient parsing (you can enhance this)
             const ingredientStr =
               typeof ingredient === 'string' ? ingredient : (ingredient as any).name || '';
+
+            if (!ingredientStr || ingredientStr.trim().length === 0) return; // Skip empty ingredients
+
             const lowerIngredient = ingredientStr.toLowerCase().trim();
 
             // Check if ingredient is already in pantry
-            const inPantry = pantryItems.some(
-              (item) =>
-                item.ingredient_name.toLowerCase().includes(lowerIngredient) ||
-                lowerIngredient.includes(item.ingredient_name.toLowerCase()),
-            );
+            let inPantry = false;
+            if (pantryItems.length > 0) {
+              inPantry = pantryItems.some(
+                (item) =>
+                  item.ingredient_name &&
+                  item.ingredient_name.trim().length > 0 &&
+                  (item.ingredient_name.toLowerCase().includes(lowerIngredient) ||
+                    lowerIngredient.includes(item.ingredient_name.toLowerCase())),
+              );
+            }
 
-            if (!inPantry && lowerIngredient) {
+            if (!inPantry) {
               // Add to map to avoid duplicates
               if (!ingredientMap.has(lowerIngredient)) {
                 ingredientMap.set(lowerIngredient, { quantity: 1, unit: '' });
@@ -369,24 +462,38 @@ function MealPlannerContent() {
       });
 
       if (allIngredients.length === 0) {
-        Alert.alert(
-          'All Set! 🎉',
-          'All ingredients are already in your pantry or no ingredients found in meal plans.',
-        );
+        // If we had meals but no ingredients to add
+        const msg =
+          pantryItems.length > 0
+            ? 'All ingredients are already in your pantry.'
+            : 'No ingredients found in your planned meals.';
+
+        showAlert({
+          title: 'All Set!',
+          message: msg,
+          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+        });
         return;
       }
 
       await addToShoppingList(allIngredients, 'Weekly Meal Plan');
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        'Added to Shopping List! 🛒',
-        `${allIngredients.length} ingredients added to your shopping list.\n\nIngredients already in your pantry were skipped.`,
-        [{ text: 'OK' }, { text: 'View List', onPress: () => Router.push('/shopping-list') }],
-      );
+      showAlert({
+        title: 'Added to Shopping List! 🛒',
+        message: `${allIngredients.length} ingredients added to your shopping list.\n\nIngredients already in your pantry were skipped.`,
+        confirmText: 'View List',
+        icon: <ShoppingCart size={32} color="#3B82F6" variant="Bold" />,
+        onConfirm: () => Router.push('/shopping-list'),
+      });
     } catch (error) {
       console.error('Failed to add to shopping list:', error);
-      Alert.alert('Error', 'Failed to add ingredients to shopping list. Please try again.');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to add ingredients to shopping list. Please try again.',
+        type: 'destructive',
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+      });
     } finally {
       setAddingToShoppingList(false);
     }
@@ -750,7 +857,7 @@ function MealPlannerContent() {
                 {loading ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Ionicons name="sparkles" size={20} color="white" />
+                  <MagicStar size={20} color="white" variant="Bold" />
                 )}
               </TouchableOpacity>
             </View>
@@ -900,7 +1007,11 @@ function MealPlannerContent() {
                   }}
                 >
                   <View className="rounded-full bg-green-50 p-2">
-                    <Ionicons name="sparkles" size={18} color="#8BD65E" />
+                    <Image
+                      source={require('@/assets/images/cooki.png')}
+                      style={{ width: 24, height: 24 }}
+                      contentFit="contain"
+                    />
                   </View>
                   <Text className="font-visby-bold text-xs text-gray-700">Ask AI Chef</Text>
                 </TouchableOpacity>
@@ -971,6 +1082,18 @@ function MealPlannerContent() {
           onClose={() => setIsAutoPlanModalOpen(false)}
           onSubmit={handleConfirmPlan}
           isLoading={loading}
+        />
+
+        <CustomAlertModal
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          icon={alertConfig.icon}
+          confirmText={alertConfig.confirmText}
+          showCancel={alertConfig.showCancel}
+          onClose={closeAlert}
+          onConfirm={alertConfig.onConfirm || closeAlert}
         />
       </SafeAreaView>
     </>
