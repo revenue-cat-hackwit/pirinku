@@ -19,7 +19,7 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
   {
     id: '1',
     type: 'system',
-    title: 'Welcome to Pirinku!',
+    title: 'Welcome to Recook!',
     message: 'Start exploring recipes and generate your first meal plan.',
     time: '2h ago',
     read: false,

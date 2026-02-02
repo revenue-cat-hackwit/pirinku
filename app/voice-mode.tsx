@@ -303,7 +303,7 @@ export default function VoiceModeScreen() {
         >
           <Ionicons name="chevron-down" size={24} color="black" />
         </TouchableOpacity>
-        <Text className="font-visby-bold text-lg">Pirinku Voice</Text>
+        <Text className="font-visby-bold text-lg">Recook Voice</Text>
         <TouchableOpacity
           onPress={() => setShowSettings(true)}
           className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"

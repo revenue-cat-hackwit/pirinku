@@ -186,9 +186,7 @@ export default function SettingsScreen() {
 
         {/* Version Info */}
         <View className="mt-auto items-center">
-          <Text className="font-visby text-xs text-gray-400 dark:text-gray-600">
-            Pirinku v1.0.0
-          </Text>
+          <Text className="font-visby text-xs text-gray-400 dark:text-gray-600">Recook v1.0.0</Text>
         </View>
       </ScrollView>
 

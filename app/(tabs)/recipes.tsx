@@ -345,7 +345,7 @@ export default function SavedRecipesScreen() {
       `⏱️ Time: ${recipe.time_minutes}m | 🔥 Calories: ${recipe.calories_per_serving}\n\n` +
       `🛒 *Ingredients:*\n${ingredientsList}\n\n` +
       `👨‍🍳 *Instructions:*\n${stepsList}\n\n` +
-      `_Made with Pirinku App_ 📲`;
+      `_Made with Recook App_ 📲`;
 
     try {
       await Share.share({
