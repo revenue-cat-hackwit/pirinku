@@ -59,6 +59,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   const [showCollectionSelector, setShowCollectionSelector] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [isAddingCollection, setIsAddingCollection] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -76,6 +77,14 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
       }
       setIsGenerating(false);
       setShowCollectionSelector(false); // Reset on open
+
+      // Delay content rendering to allow modal animation to be smooth
+      const timer = setTimeout(() => {
+        setContentReady(true);
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      setContentReady(false);
     }
   }, [visible, recipe, initialMode]);
 
@@ -340,775 +349,795 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             )}
           </View>
 
-          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-            {/* HERO MEDIA */}
-            <View className="mb-6 items-center">
-              <TouchableOpacity
-                onPress={isEditing || !displayRecipe.imageUrl ? pickImage : undefined}
-                activeOpacity={1}
-                disabled={!isEditing && isDirectVideo}
-              >
-                <View className="relative aspect-video h-56 w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
-                  {!isEditing && isDirectVideo ? (
-                    <Video
-                      source={{ uri: displayRecipe.sourceUrl || '' }}
-                      style={{ width: '100%', height: '100%' }}
-                      useNativeControls
-                      resizeMode={ResizeMode.CONTAIN}
-                      isLooping
-                      usePoster
-                      posterSource={{ uri: displayRecipe.imageUrl }}
-                      posterStyle={{ resizeMode: 'cover' }}
-                    />
-                  ) : !isEditing && isYouTube ? (
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      onPress={handleOpenLink}
-                      className="absolute inset-0 items-center justify-center bg-black"
-                    >
-                      {displayRecipe.imageUrl ? (
-                        <Image
-                          source={{ uri: displayRecipe.imageUrl }}
-                          style={{ width: '100%', height: '100%', opacity: 0.6 }}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <View className="absolute inset-0 bg-red-600/20" />
-                      )}
-                      <View className="items-center justify-center rounded-full bg-white/20 p-4 backdrop-blur-md">
-                        <Ionicons name="play" size={40} color="white" />
-                      </View>
-                      <Text className="mt-2 font-visby-bold text-white shadow-md">
-                        Watch Original Video
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <>
-                      {displayRecipe.imageUrl ? (
-                        <Image
-                          source={{ uri: displayRecipe.imageUrl }}
-                          style={{ width: '100%', height: '100%' }}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <View className="h-full w-full items-center justify-center border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
-                          <View className="items-center">
-                            <Ionicons name="camera-outline" size={48} color="#9CA3AF" />
-                            <Text className="mt-2 font-visby-bold text-sm text-gray-400 dark:text-gray-500">
-                              Tap to Add Cover Photo
+          {!contentReady ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#8BD65E" />
+            </View>
+          ) : (
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+              {/* HERO MEDIA */}
+              <View className="mb-6 items-center">
+                <TouchableOpacity
+                  onPress={isEditing || !displayRecipe.imageUrl ? pickImage : undefined}
+                  activeOpacity={1}
+                  disabled={!isEditing && isDirectVideo}
+                >
+                  <View className="relative aspect-video h-56 w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+                    {!isEditing && isDirectVideo ? (
+                      <Video
+                        source={{ uri: displayRecipe.sourceUrl || '' }}
+                        style={{ width: '100%', height: '100%' }}
+                        useNativeControls
+                        resizeMode={ResizeMode.CONTAIN}
+                        isLooping
+                        usePoster
+                        posterSource={{ uri: displayRecipe.imageUrl }}
+                        posterStyle={{ resizeMode: 'cover' }}
+                      />
+                    ) : !isEditing && isYouTube ? (
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={handleOpenLink}
+                        className="absolute inset-0 items-center justify-center bg-black"
+                      >
+                        {displayRecipe.imageUrl ? (
+                          <Image
+                            source={{ uri: displayRecipe.imageUrl }}
+                            style={{ width: '100%', height: '100%', opacity: 0.6 }}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View className="absolute inset-0 bg-red-600/20" />
+                        )}
+                        <View className="items-center justify-center rounded-full bg-white/20 p-4 backdrop-blur-md">
+                          <Ionicons name="play" size={40} color="white" />
+                        </View>
+                        <Text className="mt-2 font-visby-bold text-white shadow-md">
+                          Watch Original Video
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <>
+                        {displayRecipe.imageUrl ? (
+                          <Image
+                            source={{ uri: displayRecipe.imageUrl }}
+                            style={{ width: '100%', height: '100%' }}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View className="h-full w-full items-center justify-center border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+                            <View className="items-center">
+                              <Ionicons name="camera-outline" size={48} color="#9CA3AF" />
+                              <Text className="mt-2 font-visby-bold text-sm text-gray-400 dark:text-gray-500">
+                                Tap to Add Cover Photo
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+
+                        {isEditing && displayRecipe.imageUrl && (
+                          <View className="absolute inset-0 items-center justify-center bg-black/30">
+                            <Ionicons name="camera" size={30} color="white" />
+                            <Text className="mt-1 font-visby-bold text-xs text-white">
+                              Change Photo
                             </Text>
                           </View>
-                        </View>
-                      )}
-
-                      {isEditing && displayRecipe.imageUrl && (
-                        <View className="absolute inset-0 items-center justify-center bg-black/30">
-                          <Ionicons name="camera" size={30} color="white" />
-                          <Text className="mt-1 font-visby-bold text-xs text-white">
-                            Change Photo
-                          </Text>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* VIEW MODE TITLE & ACTIONS */}
-            {!isEditing && (
-              <View className="mb-6">
-                <Text className="mb-3 font-visby-bold text-3xl leading-tight text-gray-900 dark:text-white">
-                  {displayRecipe.title}
-                </Text>
-
-                <View className="flex-row gap-4">
-                  {/* Collection */}
-                  <TouchableOpacity
-                    onPress={() => setShowCollectionSelector(true)}
-                    className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
-                  >
-                    <Ionicons
-                      name="folder-open-outline"
-                      size={20}
-                      color={isDark ? 'white' : 'black'}
-                    />
-                    <Text className="ml-2 font-visby-bold text-gray-900 dark:text-white">Save</Text>
-                  </TouchableOpacity>
-
-                  {/* Share */}
-                  <TouchableOpacity
-                    onPress={() => onShare(displayRecipe)}
-                    className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
-                  >
-                    <Ionicons
-                      name="share-social-outline"
-                      size={20}
-                      color={isDark ? 'white' : 'black'}
-                    />
-                    <Text className="ml-2 font-visby-bold text-gray-900 dark:text-white">
-                      Share
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Edit */}
-                  <TouchableOpacity
-                    onPress={handleStartEdit}
-                    className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
-                  >
-                    <Ionicons name="pencil-outline" size={20} color={isDark ? 'white' : 'black'} />
-                    <Text className="ml-2 font-visby-bold text-gray-900 dark:text-white">Edit</Text>
-                  </TouchableOpacity>
-                </View>
+                        )}
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
               </View>
-            )}
 
-            {/* EDITABLE TITLE */}
-            {isEditing && (
-              <View className="mb-2 mt-2">
-                <TextInput
-                  value={tempRecipe?.title}
-                  onChangeText={(txt) =>
-                    setTempRecipe((prev) => (prev ? { ...prev, title: txt } : null))
-                  }
-                  className="font-visby-bold text-3xl text-gray-900 dark:text-white"
-                  placeholder="Name your dish..."
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                />
-                <View className="mt-2 h-[1px] w-12 bg-[#8BD65E]" />
-              </View>
-            )}
+              {/* VIEW MODE TITLE & ACTIONS */}
+              {!isEditing && (
+                <View className="mb-6">
+                  <Text className="mb-3 font-visby-bold text-3xl leading-tight text-gray-900 dark:text-white">
+                    {displayRecipe.title}
+                  </Text>
 
-            {/* DESCRIPTION */}
-            {isEditing ? (
-              <View className="mb-6">
-                <TextInput
-                  value={tempRecipe?.description}
-                  onChangeText={(txt) =>
-                    setTempRecipe((prev) => (prev ? { ...prev, description: txt } : null))
-                  }
-                  multiline
-                  className="min-h-[60px] font-visby text-base text-gray-600 dark:text-gray-300"
-                  textAlignVertical="top"
-                  placeholder="Describe the taste, texture, or story behind this recipe..."
-                  placeholderTextColor="#9CA3AF"
-                />
+                  <View className="flex-row gap-4">
+                    {/* Collection */}
+                    <TouchableOpacity
+                      onPress={() => setShowCollectionSelector(true)}
+                      className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
+                    >
+                      <Ionicons
+                        name="folder-open-outline"
+                        size={20}
+                        color={isDark ? 'white' : 'black'}
+                      />
+                      <Text className="ml-2 font-visby-bold text-gray-900 dark:text-white">
+                        Save
+                      </Text>
+                    </TouchableOpacity>
 
-                {/* Quick Actions for New Recipe */}
-                {!tempRecipe?.id && (
-                  <View className="mt-4 gap-3">
-                    <Text className="font-visby-bold text-xs uppercase tracking-wider text-gray-500">
-                      Quick Actions
-                    </Text>
+                    {/* Share */}
+                    <TouchableOpacity
+                      onPress={() => onShare(displayRecipe)}
+                      className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
+                    >
+                      <Ionicons
+                        name="share-social-outline"
+                        size={20}
+                        color={isDark ? 'white' : 'black'}
+                      />
+                      <Text className="ml-2 font-visby-bold text-gray-900 dark:text-white">
+                        Share
+                      </Text>
+                    </TouchableOpacity>
 
-                    <View className="flex-row gap-3">
-                      {/* Pick from Gallery */}
-                      <TouchableOpacity
-                        onPress={pickImage}
-                        className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-4"
-                      >
-                        <Ionicons name="images" size={20} color="#3B82F6" />
-                        <Text className="font-visby-bold text-sm text-blue-700">Add Photo</Text>
-                      </TouchableOpacity>
+                    {/* Edit */}
+                    <TouchableOpacity
+                      onPress={handleStartEdit}
+                      className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
+                    >
+                      <Ionicons
+                        name="pencil-outline"
+                        size={20}
+                        color={isDark ? 'white' : 'black'}
+                      />
+                      <Text className="ml-2 font-visby-bold text-gray-900 dark:text-white">
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
-                      {/* Generate with AI */}
-                      <TouchableOpacity
-                        onPress={async () => {
-                          // Validate title and description
-                          if (!tempRecipe?.title?.trim()) {
-                            showAlert(
-                              'Title Required',
-                              'Please enter a recipe title first before using AI generation.',
-                              undefined,
-                              {
-                                icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-                                type: 'destructive',
-                              },
-                            );
-                            return;
-                          }
+              {/* EDITABLE TITLE */}
+              {isEditing && (
+                <View className="mb-2 mt-2">
+                  <TextInput
+                    value={tempRecipe?.title}
+                    onChangeText={(txt) =>
+                      setTempRecipe((prev) => (prev ? { ...prev, title: txt } : null))
+                    }
+                    className="font-visby-bold text-3xl text-gray-900 dark:text-white"
+                    placeholder="Name your dish..."
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                  />
+                  <View className="mt-2 h-[1px] w-12 bg-[#8BD65E]" />
+                </View>
+              )}
 
-                          if (!tempRecipe?.description?.trim()) {
-                            showAlert(
-                              'Description Required',
-                              'Please add a brief description of your recipe before using AI generation.',
-                              undefined,
-                              {
-                                icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-                                type: 'destructive',
-                              },
-                            );
-                            return;
-                          }
+              {/* DESCRIPTION */}
+              {isEditing ? (
+                <View className="mb-6">
+                  <TextInput
+                    value={tempRecipe?.description}
+                    onChangeText={(txt) =>
+                      setTempRecipe((prev) => (prev ? { ...prev, description: txt } : null))
+                    }
+                    multiline
+                    className="min-h-[60px] font-visby text-base text-gray-600 dark:text-gray-300"
+                    textAlignVertical="top"
+                    placeholder="Describe the taste, texture, or story behind this recipe..."
+                    placeholderTextColor="#9CA3AF"
+                  />
 
-                          // Call AI generation
-                          if (onGenerateFull && tempRecipe) {
-                            setIsGenerating(true);
-                            try {
-                              await onGenerateFull(tempRecipe);
-                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  {/* Quick Actions for New Recipe */}
+                  {!tempRecipe?.id && (
+                    <View className="mt-4 gap-3">
+                      <Text className="font-visby-bold text-xs uppercase tracking-wider text-gray-500">
+                        Quick Actions
+                      </Text>
+
+                      <View className="flex-row gap-3">
+                        {/* Pick from Gallery */}
+                        <TouchableOpacity
+                          onPress={pickImage}
+                          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-4"
+                        >
+                          <Ionicons name="images" size={20} color="#3B82F6" />
+                          <Text className="font-visby-bold text-sm text-blue-700">Add Photo</Text>
+                        </TouchableOpacity>
+
+                        {/* Generate with AI */}
+                        <TouchableOpacity
+                          onPress={async () => {
+                            // Validate title and description
+                            if (!tempRecipe?.title?.trim()) {
                               showAlert(
-                                'Generated! ✨',
-                                'AI has generated ingredients and steps for your recipe. Review and edit as needed.',
-                                undefined,
-                                {
-                                  icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
-                                },
-                              );
-                            } catch (e: any) {
-                              console.error(e);
-                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                              showAlert(
-                                'Error',
-                                e.message || 'Failed to generate recipe with AI.',
+                                'Title Required',
+                                'Please enter a recipe title first before using AI generation.',
                                 undefined,
                                 {
                                   icon: <Danger size={32} color="#EF4444" variant="Bold" />,
                                   type: 'destructive',
                                 },
                               );
-                            } finally {
-                              setIsGenerating(false);
+                              return;
                             }
-                          }
-                        }}
-                        disabled={isGenerating}
-                        className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-green-100 bg-green-50 py-4"
-                        style={{ opacity: isGenerating ? 0.5 : 1 }}
-                      >
-                        {isGenerating ? (
-                          <ActivityIndicator size="small" color="#8BD65E" />
-                        ) : (
-                          <Ionicons name="sparkles" size={20} color="#8BD65E" />
-                        )}
-                        <Text className="font-visby-bold text-sm text-green-700">
-                          {isGenerating ? 'Generating...' : 'AI Generate'}
-                        </Text>
-                      </TouchableOpacity>
+
+                            if (!tempRecipe?.description?.trim()) {
+                              showAlert(
+                                'Description Required',
+                                'Please add a brief description of your recipe before using AI generation.',
+                                undefined,
+                                {
+                                  icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                                  type: 'destructive',
+                                },
+                              );
+                              return;
+                            }
+
+                            // Call AI generation
+                            if (onGenerateFull && tempRecipe) {
+                              setIsGenerating(true);
+                              try {
+                                await onGenerateFull(tempRecipe);
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                showAlert(
+                                  'Generated! ✨',
+                                  'AI has generated ingredients and steps for your recipe. Review and edit as needed.',
+                                  undefined,
+                                  {
+                                    icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                                  },
+                                );
+                              } catch (e: any) {
+                                console.error(e);
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                                showAlert(
+                                  'Error',
+                                  e.message || 'Failed to generate recipe with AI.',
+                                  undefined,
+                                  {
+                                    icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                                    type: 'destructive',
+                                  },
+                                );
+                              } finally {
+                                setIsGenerating(false);
+                              }
+                            }
+                          }}
+                          disabled={isGenerating}
+                          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-green-100 bg-green-50 py-4"
+                          style={{ opacity: isGenerating ? 0.5 : 1 }}
+                        >
+                          {isGenerating ? (
+                            <ActivityIndicator size="small" color="#8BD65E" />
+                          ) : (
+                            <Ionicons name="sparkles" size={20} color="#8BD65E" />
+                          )}
+                          <Text className="font-visby-bold text-sm text-green-700">
+                            {isGenerating ? 'Generating...' : 'AI Generate'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text className="text-center font-visby text-xs text-gray-400">
+                        Add a photo manually or let AI generate ingredients & steps
+                      </Text>
                     </View>
-
-                    <Text className="text-center font-visby text-xs text-gray-400">
-                      Add a photo manually or let AI generate ingredients & steps
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <Text className="mb-6 font-visby text-base text-gray-500 dark:text-gray-400">
-                {displayRecipe.description}
-              </Text>
-            )}
-
-            {/* Stats */}
-            {isEditing && (
-              <TouchableOpacity
-                onPress={async () => {
-                  if (!tempRecipe?.ingredients || tempRecipe.ingredients.length === 0) {
-                    showAlert('Error', 'Please add ingredients first!', undefined, {
-                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-                      type: 'destructive',
-                    });
-                    return;
-                  }
-
-                  // Show simple loading feedback
-                  Haptics.selectionAsync();
-
-                  try {
-                    showAlert(
-                      'Calculating...',
-                      'AI is estimating nutrition facts based on ingredients...',
-                      undefined,
-                      {
-                        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
-                      },
-                    );
-                    const result = await RecipeService.calculateNutrition(
-                      tempRecipe.ingredients,
-                      tempRecipe.servings || '1',
-                    );
-
-                    setTempRecipe((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            time_minutes: result.time_minutes,
-                            calories_per_serving: result.calories_per_serving,
-                          }
-                        : null,
-                    );
-
-                    showAlert(
-                      'Done',
-                      `Estimated: ${result.calories_per_serving} kcal, ${result.time_minutes} mins`,
-                      undefined,
-                      {
-                        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
-                      },
-                    );
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  } catch {
-                    showAlert('Error', 'Failed to calculate nutrition', undefined, {
-                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-                      type: 'destructive',
-                    });
-                  }
-                }}
-                className="mb-2 flex-row items-center justify-center rounded-lg bg-indigo-50 py-2 dark:bg-indigo-900/20"
-              >
-                <Ionicons
-                  name="calculator-outline"
-                  size={16}
-                  color="#4F46E5"
-                  style={{ marginRight: 6 }}
-                />
-                <Text className="font-visby-bold text-xs text-indigo-600 dark:text-indigo-400">
-                  Auto-Calculate Nutrition (AI)
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            <View className="mb-6 flex-row justify-between rounded-2xl bg-gray-50 p-4 dark:bg-gray-800">
-              <View className="flex-1 items-center">
-                {isEditing ? (
-                  <TextInput
-                    value={String(tempRecipe?.time_minutes || '')}
-                    onChangeText={(txt) =>
-                      setTempRecipe((prev) => (prev ? { ...prev, time_minutes: txt } : null))
-                    }
-                    keyboardType="numeric"
-                    className="w-16 border-b border-gray-300 text-center font-visby-bold text-gray-800 dark:text-gray-200"
-                    placeholder="15"
-                  />
-                ) : (
-                  <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
-                    {displayRecipe.time_minutes}m
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">Time</Text>
-              </View>
-              <View className="w-[1px] bg-gray-200 dark:bg-gray-700" />
-              <View className="flex-1 items-center">
-                {isEditing ? (
-                  <TextInput
-                    value={String(tempRecipe?.calories_per_serving || '')}
-                    onChangeText={(txt) =>
-                      setTempRecipe((prev) =>
-                        prev ? { ...prev, calories_per_serving: txt } : null,
-                      )
-                    }
-                    keyboardType="numeric"
-                    className="w-16 border-b border-gray-300 text-center font-visby-bold text-gray-800 dark:text-gray-200"
-                    placeholder="0"
-                  />
-                ) : (
-                  <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
-                    {displayRecipe.calories_per_serving}
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">Calories</Text>
-              </View>
-              <View className="w-[1px] bg-gray-200 dark:bg-gray-700" />
-              <View className="flex-1 items-center">
-                {isEditing ? (
-                  <TextInput
-                    value={String(tempRecipe?.servings || '')}
-                    onChangeText={(txt) =>
-                      setTempRecipe((prev) => (prev ? { ...prev, servings: txt } : null))
-                    }
-                    keyboardType="numeric"
-                    className="w-16 border-b border-gray-300 text-center font-visby-bold text-gray-800 dark:text-gray-200"
-                    placeholder="1"
-                  />
-                ) : (
-                  <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
-                    {displayRecipe.servings}
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">Servings</Text>
-              </View>
-            </View>
-
-            {/* Collections - Only show when editing existing recipes or viewing */}
-            <View className="mb-6">
-              {isEditing && tempRecipe?.id ? (
-                <View>
-                  <Text className="mb-2 font-visby-bold text-lg text-gray-900 dark:text-white">
-                    Collections
-                  </Text>
-                  <View className="mb-2 flex-row flex-wrap gap-2">
-                    {tempRecipe?.collections?.map((name, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        onPress={() => {
-                          // Remove collection
-                          const newCol = tempRecipe.collections?.filter((_, i) => i !== index);
-                          setTempRecipe((prev) => (prev ? { ...prev, collections: newCol } : null));
-                        }}
-                        className="flex-row items-center rounded-full bg-green-100 px-3 py-1 dark:bg-green-900/30"
-                      >
-                        <Text className="mr-1 text-sm text-green-600 dark:text-green-400">
-                          {name}
-                        </Text>
-                        <Ionicons name="close" size={12} color="#8BD65E" />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    <TextInput
-                      placeholder="Add to collection"
-                      placeholderTextColor="#9CA3AF"
-                      className="flex-1 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                      onSubmitEditing={(e) => {
-                        const newCol = e.nativeEvent.text.trim();
-                        if (newCol && !tempRecipe?.collections?.includes(newCol)) {
-                          setTempRecipe((prev) =>
-                            prev
-                              ? { ...prev, collections: [...(prev.collections || []), newCol] }
-                              : null,
-                          );
-                        }
-                      }}
-                    />
-                    <TouchableOpacity
-                      className="rounded-lg bg-gray-200 p-3 dark:bg-gray-700"
-                      onPress={() =>
-                        showAlert(
-                          'Tip',
-                          'Type a collection name and press enter on keyboard to add.',
-                          undefined,
-                          {
-                            icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
-                          },
-                        )
-                      }
-                    >
-                      <Ionicons name="add" size={20} color={isDark ? 'white' : 'black'} />
-                    </TouchableOpacity>
-                  </View>
+                  )}
                 </View>
               ) : (
-                displayRecipe.collections &&
-                displayRecipe.collections.length > 0 && (
-                  <View className="flex-row flex-wrap gap-2">
-                    {displayRecipe.collections.map((name, index) => (
-                      <View
-                        key={index}
-                        className="rounded-full bg-orange-100 px-3 py-1 dark:bg-orange-900/30"
-                      >
-                        <Text className="text-xs text-orange-700 dark:text-orange-300">{name}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )
+                <Text className="mb-6 font-visby text-base text-gray-500 dark:text-gray-400">
+                  {displayRecipe.description}
+                </Text>
               )}
-            </View>
 
-            {/* Cooking Mode Button */}
-            {/* Cooking Mode Button */}
-            {!isEditing && (
-              <TouchableOpacity
-                disabled={!displayRecipe.steps || displayRecipe.steps.length === 0}
-                onPress={() => {
-                  onClose();
-                  router.push({
-                    pathname: '/cooking-mode',
-                    params: { recipe: JSON.stringify(displayRecipe) },
-                  });
-                }}
-                className={`mb-6 flex-row items-center justify-center rounded-xl py-4 shadow-md ${
-                  !displayRecipe.steps || displayRecipe.steps.length === 0
-                    ? 'bg-gray-300 dark:bg-gray-800'
-                    : 'bg-gray-900 dark:bg-white'
-                }`}
-              >
-                <Ionicons
-                  name="play-circle"
-                  size={24}
-                  color={
+              {/* Stats */}
+              {isEditing && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!tempRecipe?.ingredients || tempRecipe.ingredients.length === 0) {
+                      showAlert('Error', 'Please add ingredients first!', undefined, {
+                        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                        type: 'destructive',
+                      });
+                      return;
+                    }
+
+                    // Show simple loading feedback
+                    Haptics.selectionAsync();
+
+                    try {
+                      showAlert(
+                        'Calculating...',
+                        'AI is estimating nutrition facts based on ingredients...',
+                        undefined,
+                        {
+                          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                        },
+                      );
+                      const result = await RecipeService.calculateNutrition(
+                        tempRecipe.ingredients,
+                        tempRecipe.servings || '1',
+                      );
+
+                      setTempRecipe((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              time_minutes: result.time_minutes,
+                              calories_per_serving: result.calories_per_serving,
+                            }
+                          : null,
+                      );
+
+                      showAlert(
+                        'Done',
+                        `Estimated: ${result.calories_per_serving} kcal, ${result.time_minutes} mins`,
+                        undefined,
+                        {
+                          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                        },
+                      );
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    } catch {
+                      showAlert('Error', 'Failed to calculate nutrition', undefined, {
+                        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                        type: 'destructive',
+                      });
+                    }
+                  }}
+                  className="mb-2 flex-row items-center justify-center rounded-lg bg-indigo-50 py-2 dark:bg-indigo-900/20"
+                >
+                  <Ionicons
+                    name="calculator-outline"
+                    size={16}
+                    color="#4F46E5"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text className="font-visby-bold text-xs text-indigo-600 dark:text-indigo-400">
+                    Auto-Calculate Nutrition (AI)
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <View className="mb-6 flex-row justify-between rounded-2xl bg-gray-50 p-4 dark:bg-gray-800">
+                <View className="flex-1 items-center">
+                  {isEditing ? (
+                    <TextInput
+                      value={String(tempRecipe?.time_minutes || '')}
+                      onChangeText={(txt) =>
+                        setTempRecipe((prev) => (prev ? { ...prev, time_minutes: txt } : null))
+                      }
+                      keyboardType="numeric"
+                      className="w-16 border-b border-gray-300 text-center font-visby-bold text-gray-800 dark:text-gray-200"
+                      placeholder="15"
+                    />
+                  ) : (
+                    <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
+                      {displayRecipe.time_minutes}m
+                    </Text>
+                  )}
+                  <Text className="text-xs text-gray-400">Time</Text>
+                </View>
+                <View className="w-[1px] bg-gray-200 dark:bg-gray-700" />
+                <View className="flex-1 items-center">
+                  {isEditing ? (
+                    <TextInput
+                      value={String(tempRecipe?.calories_per_serving || '')}
+                      onChangeText={(txt) =>
+                        setTempRecipe((prev) =>
+                          prev ? { ...prev, calories_per_serving: txt } : null,
+                        )
+                      }
+                      keyboardType="numeric"
+                      className="w-16 border-b border-gray-300 text-center font-visby-bold text-gray-800 dark:text-gray-200"
+                      placeholder="0"
+                    />
+                  ) : (
+                    <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
+                      {displayRecipe.calories_per_serving}
+                    </Text>
+                  )}
+                  <Text className="text-xs text-gray-400">Calories</Text>
+                </View>
+                <View className="w-[1px] bg-gray-200 dark:bg-gray-700" />
+                <View className="flex-1 items-center">
+                  {isEditing ? (
+                    <TextInput
+                      value={String(tempRecipe?.servings || '')}
+                      onChangeText={(txt) =>
+                        setTempRecipe((prev) => (prev ? { ...prev, servings: txt } : null))
+                      }
+                      keyboardType="numeric"
+                      className="w-16 border-b border-gray-300 text-center font-visby-bold text-gray-800 dark:text-gray-200"
+                      placeholder="1"
+                    />
+                  ) : (
+                    <Text className="font-visby-bold text-gray-800 dark:text-gray-200">
+                      {displayRecipe.servings}
+                    </Text>
+                  )}
+                  <Text className="text-xs text-gray-400">Servings</Text>
+                </View>
+              </View>
+
+              {/* Collections - Only show when editing existing recipes or viewing */}
+              <View className="mb-6">
+                {isEditing && tempRecipe?.id ? (
+                  <View>
+                    <Text className="mb-2 font-visby-bold text-lg text-gray-900 dark:text-white">
+                      Collections
+                    </Text>
+                    <View className="mb-2 flex-row flex-wrap gap-2">
+                      {tempRecipe?.collections?.map((name, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          onPress={() => {
+                            // Remove collection
+                            const newCol = tempRecipe.collections?.filter((_, i) => i !== index);
+                            setTempRecipe((prev) =>
+                              prev ? { ...prev, collections: newCol } : null,
+                            );
+                          }}
+                          className="flex-row items-center rounded-full bg-green-100 px-3 py-1 dark:bg-green-900/30"
+                        >
+                          <Text className="mr-1 text-sm text-green-600 dark:text-green-400">
+                            {name}
+                          </Text>
+                          <Ionicons name="close" size={12} color="#8BD65E" />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                      <TextInput
+                        placeholder="Add to collection"
+                        placeholderTextColor="#9CA3AF"
+                        className="flex-1 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        onSubmitEditing={(e) => {
+                          const newCol = e.nativeEvent.text.trim();
+                          if (newCol && !tempRecipe?.collections?.includes(newCol)) {
+                            setTempRecipe((prev) =>
+                              prev
+                                ? { ...prev, collections: [...(prev.collections || []), newCol] }
+                                : null,
+                            );
+                          }
+                        }}
+                      />
+                      <TouchableOpacity
+                        className="rounded-lg bg-gray-200 p-3 dark:bg-gray-700"
+                        onPress={() =>
+                          showAlert(
+                            'Tip',
+                            'Type a collection name and press enter on keyboard to add.',
+                            undefined,
+                            {
+                              icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                            },
+                          )
+                        }
+                      >
+                        <Ionicons name="add" size={20} color={isDark ? 'white' : 'black'} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  displayRecipe.collections &&
+                  displayRecipe.collections.length > 0 && (
+                    <View className="flex-row flex-wrap gap-2">
+                      {displayRecipe.collections.map((name, index) => (
+                        <View
+                          key={index}
+                          className="rounded-full bg-orange-100 px-3 py-1 dark:bg-orange-900/30"
+                        >
+                          <Text className="text-xs text-orange-700 dark:text-orange-300">
+                            {name}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )
+                )}
+              </View>
+
+              {/* Cooking Mode Button */}
+              {/* Cooking Mode Button */}
+              {!isEditing && (
+                <TouchableOpacity
+                  disabled={!displayRecipe.steps || displayRecipe.steps.length === 0}
+                  onPress={() => {
+                    onClose();
+                    router.push({
+                      pathname: '/cooking-mode',
+                      params: { recipe: JSON.stringify(displayRecipe) },
+                    });
+                  }}
+                  className={`mb-6 flex-row items-center justify-center rounded-xl py-4 shadow-md ${
                     !displayRecipe.steps || displayRecipe.steps.length === 0
-                      ? '#9CA3AF'
-                      : isDark
-                        ? 'black'
-                        : 'white'
-                  }
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  className={`font-visby-bold text-base ${
-                    !displayRecipe.steps || displayRecipe.steps.length === 0
-                      ? 'text-gray-500'
-                      : 'text-white dark:text-black'
+                      ? 'bg-gray-300 dark:bg-gray-800'
+                      : 'bg-gray-900 dark:bg-white'
                   }`}
                 >
-                  Start Cooking Mode
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Ingredients */}
-            <View className="mb-6">
-              <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="cart-outline" size={24} color={isDark ? '#FFF' : '#111827'} />
-                  <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
-                    Ingredients
+                  <Ionicons
+                    name="play-circle"
+                    size={24}
+                    color={
+                      !displayRecipe.steps || displayRecipe.steps.length === 0
+                        ? '#9CA3AF'
+                        : isDark
+                          ? 'black'
+                          : 'white'
+                    }
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text
+                    className={`font-visby-bold text-base ${
+                      !displayRecipe.steps || displayRecipe.steps.length === 0
+                        ? 'text-gray-500'
+                        : 'text-white dark:text-black'
+                    }`}
+                  >
+                    Start Cooking Mode
                   </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Ingredients */}
+              <View className="mb-6">
+                <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="cart-outline" size={24} color={isDark ? '#FFF' : '#111827'} />
+                    <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
+                      Ingredients
+                    </Text>
+                  </View>
+                  {!isEditing && (
+                    <TouchableOpacity onPress={handleAddIngredientsToShoppingList}>
+                      <Text className="font-visby-bold text-xs text-[#8BD65E]">+ Add to List</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-                {!isEditing && (
-                  <TouchableOpacity onPress={handleAddIngredientsToShoppingList}>
-                    <Text className="font-visby-bold text-xs text-[#8BD65E]">+ Add to List</Text>
+
+                {isEditing
+                  ? (tempRecipe?.ingredients || []).map((item, i) => (
+                      <View key={i} className="mb-2 flex-row items-center">
+                        <TextInput
+                          value={item}
+                          onChangeText={(txt) => {
+                            setTempRecipe((prev) => {
+                              if (!prev) return null;
+                              const newIng = [...(prev.ingredients || [])];
+                              newIng[i] = txt;
+                              return { ...prev, ingredients: newIng };
+                            });
+                          }}
+                          className="mr-2 flex-1 rounded border border-gray-200 bg-gray-50 p-2 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                        <TouchableOpacity
+                          onPress={() => {
+                            setTempRecipe((prev) => {
+                              if (!prev) return null;
+                              const newIng = (prev.ingredients || []).filter((_, idx) => idx !== i);
+                              return { ...prev, ingredients: newIng };
+                            });
+                          }}
+                        >
+                          <Ionicons name="remove-circle" size={20} color="red" />
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  : (displayRecipe.ingredients || []).map((item, i) => (
+                      <View key={i} className="mb-2 flex-row items-start">
+                        <Text className="mr-2 text-[#8BD65E]">•</Text>
+                        <Text className="font-visby text-base text-gray-700 dark:text-gray-300">
+                          {item}
+                        </Text>
+                      </View>
+                    ))}
+
+                {isEditing && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setTempRecipe((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              ingredients: [...(prev.ingredients || []), ''],
+                            }
+                          : null,
+                      );
+                    }}
+                    className="mt-3 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 py-3 active:bg-gray-100"
+                  >
+                    <Ionicons name="add" size={20} color="#6B7280" />
+                    <Text className="ml-2 font-visby-bold text-sm text-gray-600">
+                      Add Ingredient
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {isEditing
-                ? (tempRecipe?.ingredients || []).map((item, i) => (
-                    <View key={i} className="mb-2 flex-row items-center">
-                      <TextInput
-                        value={item}
-                        onChangeText={(txt) => {
-                          setTempRecipe((prev) => {
-                            if (!prev) return null;
-                            const newIng = [...(prev.ingredients || [])];
-                            newIng[i] = txt;
-                            return { ...prev, ingredients: newIng };
-                          });
-                        }}
-                        className="mr-2 flex-1 rounded border border-gray-200 bg-gray-50 p-2 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                      />
-                      <TouchableOpacity
-                        onPress={() => {
-                          setTempRecipe((prev) => {
-                            if (!prev) return null;
-                            const newIng = (prev.ingredients || []).filter((_, idx) => idx !== i);
-                            return { ...prev, ingredients: newIng };
-                          });
-                        }}
-                      >
-                        <Ionicons name="remove-circle" size={20} color="red" />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                : (displayRecipe.ingredients || []).map((item, i) => (
-                    <View key={i} className="mb-2 flex-row items-start">
-                      <Text className="mr-2 text-[#8BD65E]">•</Text>
-                      <Text className="font-visby text-base text-gray-700 dark:text-gray-300">
-                        {item}
-                      </Text>
-                    </View>
-                  ))}
-
-              {isEditing && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setTempRecipe((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            ingredients: [...(prev.ingredients || []), ''],
-                          }
-                        : null,
-                    );
-                  }}
-                  className="mt-3 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 py-3 active:bg-gray-100"
-                >
-                  <Ionicons name="add" size={20} color="#6B7280" />
-                  <Text className="ml-2 font-visby-bold text-sm text-gray-600">Add Ingredient</Text>
-                </TouchableOpacity>
+              {/* GENERATE FULL BUTTON for Placeholder Recipes */}
+              {!isEditing && displayRecipe.steps.length === 0 && onGenerateFull && (
+                <View className="mb-6 rounded-xl bg-orange-50 p-4 dark:bg-orange-900/20">
+                  <View className="mb-2 flex-row items-center justify-center gap-2">
+                    <Ionicons name="sparkles" size={20} color={isDark ? '#FB923C' : '#EA580C'} />
+                    <Text className="font-visby-bold text-lg text-orange-600 dark:text-orange-400">
+                      Incomplete Recipe
+                    </Text>
+                  </View>
+                  <Text className="mb-4 text-center font-visby text-sm text-gray-500 dark:text-gray-400">
+                    This recipe was part of your weekly plan but details haven&apos;t been generated
+                    yet.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleGenerateClick}
+                    disabled={isGenerating}
+                    className="flex-row items-center justify-center rounded-full bg-orange-500 py-3 shadow-md active:bg-orange-600"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <ActivityIndicator size="small" color="white" className="mr-2" />
+                        <Text className="font-visby-bold text-white">Generating...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="sparkles"
+                          size={20}
+                          color="white"
+                          style={{ marginRight: 8 }}
+                        />
+                        <Text className="font-visby-bold text-white">Generate Full Details</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
               )}
-            </View>
 
-            {/* GENERATE FULL BUTTON for Placeholder Recipes */}
-            {!isEditing && displayRecipe.steps.length === 0 && onGenerateFull && (
-              <View className="mb-6 rounded-xl bg-orange-50 p-4 dark:bg-orange-900/20">
-                <View className="mb-2 flex-row items-center justify-center gap-2">
-                  <Ionicons name="sparkles" size={20} color={isDark ? '#FB923C' : '#EA580C'} />
-                  <Text className="font-visby-bold text-lg text-orange-600 dark:text-orange-400">
-                    Incomplete Recipe
-                  </Text>
+              {/* Steps */}
+              <View className="mb-8">
+                <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons
+                      name="restaurant-outline"
+                      size={24}
+                      color={isDark ? '#FFF' : '#111827'}
+                    />
+                    <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
+                      Instructions
+                    </Text>
+                  </View>
                 </View>
-                <Text className="mb-4 text-center font-visby text-sm text-gray-500 dark:text-gray-400">
-                  This recipe was part of your weekly plan but details haven&apos;t been generated
-                  yet.
-                </Text>
-                <TouchableOpacity
-                  onPress={handleGenerateClick}
-                  disabled={isGenerating}
-                  className="flex-row items-center justify-center rounded-full bg-orange-500 py-3 shadow-md active:bg-orange-600"
-                >
-                  {isGenerating ? (
-                    <>
-                      <ActivityIndicator size="small" color="white" className="mr-2" />
-                      <Text className="font-visby-bold text-white">Generating...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="sparkles"
-                        size={20}
-                        color="white"
-                        style={{ marginRight: 8 }}
-                      />
-                      <Text className="font-visby-bold text-white">Generate Full Details</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
 
-            {/* Steps */}
-            <View className="mb-8">
-              <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
-                <View className="flex-row items-center gap-2">
-                  <Ionicons
-                    name="restaurant-outline"
-                    size={24}
-                    color={isDark ? '#FFF' : '#111827'}
-                  />
-                  <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
-                    Instructions
-                  </Text>
-                </View>
-              </View>
-
-              {isEditing
-                ? (tempRecipe?.steps || []).map((step, i) => (
-                    <View key={i} className="mb-4 flex-row items-start">
-                      <View className="mr-2 mt-2 h-6 w-6 items-center justify-center rounded-full bg-blue-100">
-                        <Text className="font-visby-bold text-xs text-blue-600">{i + 1}</Text>
+                {isEditing
+                  ? (tempRecipe?.steps || []).map((step, i) => (
+                      <View key={i} className="mb-4 flex-row items-start">
+                        <View className="mr-2 mt-2 h-6 w-6 items-center justify-center rounded-full bg-blue-100">
+                          <Text className="font-visby-bold text-xs text-blue-600">{i + 1}</Text>
+                        </View>
+                        <TextInput
+                          value={step.instruction}
+                          multiline
+                          onChangeText={(txt) => {
+                            setTempRecipe((prev) => {
+                              if (!prev) return null;
+                              const newSteps = [...(prev.steps || [])];
+                              newSteps[i] = { ...newSteps[i], instruction: txt };
+                              return { ...prev, steps: newSteps };
+                            });
+                          }}
+                          className="min-h-[60px] flex-1 rounded border border-gray-200 bg-gray-50 p-2 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          textAlignVertical="top"
+                        />
+                        <TouchableOpacity
+                          onPress={() => {
+                            setTempRecipe((prev) => {
+                              if (!prev) return null;
+                              const newSteps = (prev.steps || []).filter((_, idx) => idx !== i);
+                              const reindexed = newSteps.map((s, idx) => ({
+                                ...s,
+                                step: String(idx + 1),
+                              }));
+                              return { ...prev, steps: reindexed };
+                            });
+                          }}
+                          className="ml-2 mt-2"
+                        >
+                          <Ionicons name="remove-circle" size={20} color="red" />
+                        </TouchableOpacity>
                       </View>
-                      <TextInput
-                        value={step.instruction}
-                        multiline
-                        onChangeText={(txt) => {
-                          setTempRecipe((prev) => {
-                            if (!prev) return null;
-                            const newSteps = [...(prev.steps || [])];
-                            newSteps[i] = { ...newSteps[i], instruction: txt };
-                            return { ...prev, steps: newSteps };
-                          });
-                        }}
-                        className="min-h-[60px] flex-1 rounded border border-gray-200 bg-gray-50 p-2 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        textAlignVertical="top"
-                      />
-                      <TouchableOpacity
-                        onPress={() => {
-                          setTempRecipe((prev) => {
-                            if (!prev) return null;
-                            const newSteps = (prev.steps || []).filter((_, idx) => idx !== i);
-                            const reindexed = newSteps.map((s, idx) => ({
-                              ...s,
-                              step: String(idx + 1),
-                            }));
-                            return { ...prev, steps: reindexed };
-                          });
-                        }}
-                        className="ml-2 mt-2"
-                      >
-                        <Ionicons name="remove-circle" size={20} color="red" />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                : (displayRecipe.steps || []).map((step, i) => (
-                    <View key={i} className="mb-4 flex-row">
-                      <View className="mr-3 h-6 w-6 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
-                        <Text className="font-visby-bold text-xs text-red-600 dark:text-red-400">
-                          {step.step}
+                    ))
+                  : (displayRecipe.steps || []).map((step, i) => (
+                      <View key={i} className="mb-4 flex-row">
+                        <View className="mr-3 h-6 w-6 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
+                          <Text className="font-visby-bold text-xs text-red-600 dark:text-red-400">
+                            {step.step}
+                          </Text>
+                        </View>
+                        <Text className="flex-1 font-visby text-base leading-6 text-gray-700 dark:text-gray-300">
+                          {step.instruction}
                         </Text>
                       </View>
-                      <Text className="flex-1 font-visby text-base leading-6 text-gray-700 dark:text-gray-300">
-                        {step.instruction}
-                      </Text>
-                    </View>
-                  ))}
+                    ))}
 
-              {isEditing && (
+                {isEditing && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const nextStep = (tempRecipe?.steps?.length || 0) + 1;
+                      setTempRecipe((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              steps: [
+                                ...(prev.steps || []),
+                                {
+                                  step: String(nextStep),
+                                  instruction: '',
+                                },
+                              ],
+                            }
+                          : null,
+                      );
+                    }}
+                    className="mt-3 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 py-3 active:bg-gray-100"
+                  >
+                    <Ionicons name="add" size={20} color="#6B7280" />
+                    <Text className="ml-2 font-visby-bold text-sm text-gray-600">
+                      Add Instruction Step
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Tips: Redesigned for Premium Feel */}
+              {(isEditing || (displayRecipe.tips && displayRecipe.tips.length > 0)) && (
+                <View className="mb-8 overflow-hidden rounded-2xl bg-gray-50 dark:bg-gray-800">
+                  <View className="flex-row items-center gap-3 border-l-4 border-yellow-500 bg-yellow-500/10 px-4 py-3 dark:bg-yellow-500/20">
+                    <Ionicons name="star" size={18} color="#EAB308" />
+                    <Text className="font-visby-bold text-base text-gray-900 dark:text-white">
+                      Chef&apos;s Secret
+                    </Text>
+                  </View>
+
+                  <View className="p-4 pt-3">
+                    {isEditing ? (
+                      <TextInput
+                        value={tempRecipe?.tips}
+                        onChangeText={(txt) =>
+                          setTempRecipe((prev) => (prev ? { ...prev, tips: txt } : null))
+                        }
+                        multiline
+                        placeholder="Add a pro tip for this recipe..."
+                        placeholderTextColor="#9CA3AF"
+                        className="min-h-[60px] font-visby text-base leading-relaxed text-gray-600 dark:text-gray-300"
+                      />
+                    ) : (
+                      <Text className="font-visby-italic text-base leading-relaxed text-gray-600 dark:text-gray-300">
+                        &quot;{displayRecipe.tips}&quot;
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* DELETE */}
+              {!isEditing && (
                 <TouchableOpacity
                   onPress={() => {
-                    const nextStep = (tempRecipe?.steps?.length || 0) + 1;
-                    setTempRecipe((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            steps: [
-                              ...(prev.steps || []),
-                              {
-                                step: String(nextStep),
-                                instruction: '',
-                              },
-                            ],
-                          }
-                        : null,
-                    );
+                    if (!displayRecipe.id) {
+                      showAlert('Error', 'Recipe ID missing!', undefined, {
+                        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                        type: 'destructive',
+                      });
+                      return;
+                    }
+                    onDelete(displayRecipe.id);
                   }}
-                  className="mt-3 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 py-3 active:bg-gray-100"
+                  className="mb-8 flex-row items-center justify-center rounded-xl border border-red-100 bg-red-50 py-4 dark:border-red-900/30 dark:bg-red-900/20"
                 >
-                  <Ionicons name="add" size={20} color="#6B7280" />
-                  <Text className="ml-2 font-visby-bold text-sm text-gray-600">
-                    Add Instruction Step
-                  </Text>
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color="#EF4444"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text className="font-visby-bold text-red-500">Delete Recipe</Text>
                 </TouchableOpacity>
               )}
-            </View>
-
-            {/* Tips: Redesigned for Premium Feel */}
-            {(isEditing || (displayRecipe.tips && displayRecipe.tips.length > 0)) && (
-              <View className="mb-8 overflow-hidden rounded-2xl bg-gray-50 dark:bg-gray-800">
-                <View className="flex-row items-center gap-3 border-l-4 border-yellow-500 bg-yellow-500/10 px-4 py-3 dark:bg-yellow-500/20">
-                  <Ionicons name="star" size={18} color="#EAB308" />
-                  <Text className="font-visby-bold text-base text-gray-900 dark:text-white">
-                    Chef&apos;s Secret
-                  </Text>
-                </View>
-
-                <View className="p-4 pt-3">
-                  {isEditing ? (
-                    <TextInput
-                      value={tempRecipe?.tips}
-                      onChangeText={(txt) =>
-                        setTempRecipe((prev) => (prev ? { ...prev, tips: txt } : null))
-                      }
-                      multiline
-                      placeholder="Add a pro tip for this recipe..."
-                      placeholderTextColor="#9CA3AF"
-                      className="min-h-[60px] font-visby text-base leading-relaxed text-gray-600 dark:text-gray-300"
-                    />
-                  ) : (
-                    <Text className="font-visby-italic text-base leading-relaxed text-gray-600 dark:text-gray-300">
-                      &quot;{displayRecipe.tips}&quot;
-                    </Text>
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* DELETE */}
-            {!isEditing && (
-              <TouchableOpacity
-                onPress={() => {
-                  if (!displayRecipe.id) {
-                    showAlert('Error', 'Recipe ID missing!', undefined, {
-                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-                      type: 'destructive',
-                    });
-                    return;
-                  }
-                  onDelete(displayRecipe.id);
-                }}
-                className="mb-8 flex-row items-center justify-center rounded-xl border border-red-100 bg-red-50 py-4 dark:border-red-900/30 dark:bg-red-900/20"
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={20}
-                  color="#EF4444"
-                  style={{ marginRight: 8 }}
-                />
-                <Text className="font-visby-bold text-red-500">Delete Recipe</Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
+            </ScrollView>
+          )}
         </View>
       </View>
       <CollectionSelectorModal

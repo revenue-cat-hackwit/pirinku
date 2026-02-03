@@ -420,6 +420,7 @@ export default function SavedRecipesScreen() {
           await completeRecipe(r);
         }}
         availableCollections={recipeGroups.map((c) => c.name).filter((n) => n !== 'All Recipes')}
+        key={selectedRecipe ? `view-${selectedRecipe.id}` : 'view-hidden'}
       />
 
       <RecipeDetailModal
@@ -430,6 +431,7 @@ export default function SavedRecipesScreen() {
         onUpdate={handleSaveManual}
         onDelete={() => setManualModalVisible(false)}
         onShare={() => {}}
+        key={manualModalVisible ? 'manual-visible' : 'manual-hidden'}
       />
 
       {/* HEADER */}
@@ -583,7 +585,7 @@ export default function SavedRecipesScreen() {
               <Ionicons name="create-outline" size={24} color="#EF4444" />
             </View>
             <Text className="font-visby-bold text-xs text-gray-700 dark:text-gray-300">
-              Write New
+              New Recipe
             </Text>
           </TouchableOpacity>
 
