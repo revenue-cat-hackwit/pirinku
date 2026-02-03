@@ -104,6 +104,16 @@ export const PantryService = {
 
       return data.data || [];
     } catch (error: any) {
+      // Handle network errors specifically
+      if (
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('Network request failed') ||
+        error.message?.includes('timeout') ||
+        error.message?.includes('network')
+      ) {
+        throw new Error('No internet connection. Please check your network and try again.');
+      }
+
       // Re-throw with clearer message
       if (error.message) {
         throw error;

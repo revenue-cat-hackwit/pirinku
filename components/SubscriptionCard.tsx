@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RevenueCatUI from 'react-native-purchases-ui';
 import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { TickCircle } from 'iconsax-react-native';
 
 export const SubscriptionCard = () => {
   const { isPro, initialize } = useSubscriptionStore();
@@ -17,7 +19,9 @@ export const SubscriptionCard = () => {
         paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
       ) {
         await initialize();
-        Alert.alert('Success', 'Welcome to Pro! Plan upgraded.');
+        showAlert('Success', 'Welcome to Pro! Plan upgraded.', undefined, {
+          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+        });
       }
     } catch (e) {
       console.error('Paywall Error:', e);

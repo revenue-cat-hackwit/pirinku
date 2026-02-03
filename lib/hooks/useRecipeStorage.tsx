@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Recipe } from '@/lib/types';
 import { RecipeService } from '@/lib/services/recipeService';
-import { Alert } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 
 const RECIPES_STORAGE_KEY = 'pirinku_local_recipes_v1';
 
@@ -103,14 +104,21 @@ export const useRecipeStorage = () => {
       });
     } catch (e) {
       console.error('Save recipe error', e);
-      Alert.alert('Cloud Sync Error', 'Recipe saved locally, but failed to sync to cloud.');
+      showAlert(
+        'Cloud Sync Error',
+        'Recipe saved locally, but failed to sync to cloud.',
+        undefined,
+        {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        },
+      );
     }
   };
 
   const deleteRecipe = async (id: string) => {
     try {
       // Optimistic Delete
-      const previousList = savedRecipes;
       const newList = savedRecipes.filter((r) => r.id !== id);
       setSavedRecipes(newList);
       await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(newList));
@@ -119,7 +127,10 @@ export const useRecipeStorage = () => {
       await RecipeService.deleteRecipe(id);
     } catch (e) {
       console.error('Delete recipe error', e);
-      Alert.alert('Error', 'Failed to delete from cloud.');
+      showAlert('Error', 'Failed to delete from cloud.', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
       // Rollback? Not strictly necessary for MVP, but good practice.
     }
   };
@@ -135,7 +146,10 @@ export const useRecipeStorage = () => {
       await RecipeService.updateRecipe(recipe);
     } catch (e) {
       console.error('Update recipe error', e);
-      Alert.alert('Error', 'Failed to update recipe in cloud.');
+      showAlert('Error', 'Failed to update recipe in cloud.', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     }
   };
 

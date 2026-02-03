@@ -9,8 +9,9 @@ import {
   Platform,
   ActivityIndicator,
   TextInput,
-  Alert,
 } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -80,7 +81,10 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
       console.error(e);
       // Revert on error
       setComments((prev) => prev.filter((c) => c.id !== tempId));
-      Alert.alert('Error', 'Failed to send comment: ' + e.message);
+      showAlert('Error', 'Failed to send comment: ' + e.message, undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     }
   };
 

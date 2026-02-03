@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   Share,
   ActivityIndicator,
   TextInput,
@@ -15,6 +14,8 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, TickCircle } from 'iconsax-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -270,7 +271,10 @@ export default function SavedRecipesScreen() {
       setCreateCollectionModalVisible(false);
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to create collection.');
+      showAlert('Error', 'Failed to create collection.', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     }
   };
 
@@ -300,7 +304,10 @@ export default function SavedRecipesScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to delete collection.');
+      showAlert('Error', 'Failed to delete collection.', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     }
   };
 
@@ -333,7 +340,9 @@ export default function SavedRecipesScreen() {
     setManualModalVisible(false);
     setTempManualRecipe(null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert('Success', 'Recipe created successfully!');
+    showAlert('Success', 'Recipe created successfully!', undefined, {
+      icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+    });
   };
 
   const handleShareRecipe = async (recipe: Recipe) => {

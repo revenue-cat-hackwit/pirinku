@@ -6,8 +6,10 @@ import AuthTextField from '@/components/auth/AuthTextField';
 import { useAuthStore } from '@/lib/store/authStore';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -19,7 +21,10 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (errorMessage) {
-      Alert.alert('Error', errorMessage);
+      showAlert('Error', errorMessage, undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
       setErrorMessage(null);
     }
   }, [errorMessage]);
@@ -80,7 +85,7 @@ export default function SignInPage() {
         </View>
 
         <AuthPrimaryButton
-          title={loading ? "Logging in..." : "Login"}
+          title={loading ? 'Logging in...' : 'Login'}
           containerClassName="mt-6"
           onPress={handleSignIn}
           disabled={loading}

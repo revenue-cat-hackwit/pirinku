@@ -6,8 +6,10 @@ import AuthTextField from '@/components/auth/AuthTextField';
 import { useAuthStore } from '@/lib/store/authStore';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, TickCircle } from 'iconsax-react-native';
 
 export default function ResetPasswordPage() {
   const { email } = useLocalSearchParams<{ email: string }>();
@@ -21,7 +23,10 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     if (errorMessage) {
-      Alert.alert('Error', errorMessage);
+      showAlert('Error', errorMessage, undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
       setErrorMessage(null);
     }
   }, [errorMessage]);
@@ -57,7 +62,7 @@ export default function ResetPasswordPage() {
     try {
       setIsLoading(true);
       await resetPassword(email, otp, newPassword);
-      Alert.alert(
+      showAlert(
         'Success',
         'Your password has been reset successfully. Please log in with your new password.',
         [
@@ -65,7 +70,10 @@ export default function ResetPasswordPage() {
             text: 'OK',
             onPress: () => router.replace('/sign-in'),
           },
-        ]
+        ],
+        {
+          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+        },
       );
     } catch (error: any) {
       setErrorMessage(error.message || 'An unexpected error occurred. Please try again.');
@@ -120,7 +128,7 @@ export default function ResetPasswordPage() {
           </View>
 
           <AuthPrimaryButton
-            title={isLoading ? "Resetting..." : "Reset Password"}
+            title={isLoading ? 'Resetting...' : 'Reset Password'}
             onPress={handleResetPress}
             disabled={isLoading}
           />

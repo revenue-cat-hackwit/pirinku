@@ -106,6 +106,7 @@ export const MealPlannerService = {
   async generateWeeklyPlan(
     startDate: string,
     preferences?: { goal?: string; dietType?: string; allergies?: string; calories?: string },
+    generationMode?: 'replace' | 'fill',
   ): Promise<void> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) throw new Error('Not authenticated');
@@ -126,30 +127,44 @@ export const MealPlannerService = {
     console.log('[MealPlanner] Token Prefix:', token.substring(0, 10) + '...');
     console.log('[MealPlanner] Anon Key Prefix:', supabaseAnonKey.substring(0, 10) + '...');
 
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`, // Send User Token for RLS
-        apikey: supabaseAnonKey,
-      },
-      body: JSON.stringify({
-        startDate,
-        customPreferences: preferences,
-      }),
-    });
+    try {
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // Send User Token for RLS
+          apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          startDate,
+          customPreferences: preferences,
+          generationMode: generationMode || 'replace', // Default to replace if not specified
+        }),
+      });
 
-    if (!response.ok) {
-      const text = await response.text();
-      let errMsg = text;
-      try {
-        const json = JSON.parse(text);
-        errMsg = json.message || json.error || text;
-      } catch (e) {}
-      throw new Error(`Server Error: ${errMsg}`);
+      if (!response.ok) {
+        const text = await response.text();
+        let errMsg = text;
+        try {
+          const json = JSON.parse(text);
+          errMsg = json.message || json.error || text;
+        } catch {}
+        throw new Error(`Server Error: ${errMsg}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to generate plan');
+    } catch (error: any) {
+      // Handle network errors specifically
+      if (
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('Network request failed') ||
+        error.message?.includes('timeout')
+      ) {
+        throw new Error('No internet connection. Please check your network and try again.');
+      }
+      // Re-throw other errors
+      throw error;
     }
-
-    const data = await response.json();
-    if (!data.success) throw new Error(data.error || 'Failed to generate plan');
   },
 };

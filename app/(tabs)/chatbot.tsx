@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   FlatList,
-  Alert,
   Animated,
   Easing,
   Text,
@@ -10,6 +9,8 @@ import {
   Keyboard,
   TouchableOpacity,
 } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, TickCircle, MagicStar, Trash } from 'iconsax-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Message, Recipe } from '@/lib/types';
 import { AIService } from '@/lib/services/aiService';
@@ -175,13 +176,16 @@ export default function Chatbot() {
     // 1. CHECK QUOTA for Chat
     if (!checkCanGenerate()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert(
+      showAlert(
         'Daily Limit Reached 🍳',
         'You have used your free interactions for today. Upgrade to Pro for unlimited chat!',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Upgrade to Pro', onPress: handlePresentPaywall },
         ],
+        {
+          icon: <MagicStar size={32} color="#F59E0B" variant="Bold" />,
+        },
       );
       return;
     }
@@ -252,7 +256,10 @@ export default function Chatbot() {
     } catch (error: any) {
       console.error('[Chatbot] Error calling AI:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Sorry, Cooki is busy right now. Please try again later!');
+      showAlert('Error', 'Sorry, Cooki is busy right now. Please try again later!', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -262,20 +269,31 @@ export default function Chatbot() {
     // 1. CHECk QUOTA for Image Upload
     if (!checkCanGenerate()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert(
+      showAlert(
         'Daily Limit Reached 🍳',
         'You have used your free interactions for today. Upgrade to Pro for unlimited photo analysis!',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Upgrade to Pro', onPress: handlePresentPaywall },
         ],
+        {
+          icon: <MagicStar size={32} color="#F59E0B" variant="Bold" />,
+        },
       );
       return;
     }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Cooki needs gallery access to see your ingredients.');
+      showAlert(
+        'Permission Denied',
+        'Cooki needs gallery access to see your ingredients.',
+        undefined,
+        {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        },
+      );
       return;
     }
 
@@ -292,7 +310,10 @@ export default function Chatbot() {
       // For images, use base64
       if (!asset.base64) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Error', 'Failed to process image. Please try again.');
+        showAlert('Error', 'Failed to process image. Please try again.', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
         return;
       }
       const base64 = `data:image/jpeg;base64,${asset.base64}`;
@@ -341,9 +362,14 @@ export default function Chatbot() {
       } catch (error: any) {
         console.error('Error analyzing image:', error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert(
+        showAlert(
           'Error',
           'Failed to analyze image. Please ensure you have a stable internet connection.',
+          undefined,
+          {
+            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+            type: 'destructive',
+          },
         );
       } finally {
         setLoading(false);
@@ -358,7 +384,9 @@ export default function Chatbot() {
       const lastAIMessage = [...messages].reverse().find((m) => m.role === 'assistant');
 
       if (!lastAIMessage || typeof lastAIMessage.content !== 'string') {
-        Alert.alert('No Recipe Found', 'No recipe found to save from the last chat.');
+        showAlert('No Recipe Found', 'No recipe found to save from the last chat.', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        });
         return;
       }
 
@@ -391,9 +419,13 @@ export default function Chatbot() {
         }));
 
       if (ingredients.length === 0 && steps.length === 0) {
-        Alert.alert(
+        showAlert(
           'Parse Failed',
           'Could not detect a recipe. Ensure Cooki provided a clear format (Ingredients & Instructions).',
+          undefined,
+          {
+            icon: <Danger size={32} color="#F59E0B" variant="Bold" />,
+          },
         );
         return;
       }
@@ -415,19 +447,28 @@ export default function Chatbot() {
       await loadSavedRecipes(); // Refresh
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Saved! 📖', `Recipe "${title}" has been saved to your collection.`);
+      showAlert('Saved! 📖', `Recipe "${title}" has been saved to your collection.`, undefined, {
+        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+      });
     } catch (error) {
       console.error('Failed to save recipe:', error);
-      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+      showAlert('Error', 'Failed to save recipe. Please try again.', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     }
   };
 
   // Get recipe recommendations
   const handleGetRecommendations = () => {
     if (savedRecipes.length === 0) {
-      Alert.alert(
+      showAlert(
         'No Saved Recipes',
         "You don't have any saved recipes yet. Save some from chat or the Generate tab!",
+        undefined,
+        {
+          icon: <Danger size={32} color="#F59E0B" variant="Bold" />,
+        },
       );
       return;
     }
@@ -489,7 +530,7 @@ export default function Chatbot() {
           setHistoryDrawerVisible(false);
         }}
         onDeleteSession={(sessionId) => {
-          Alert.alert('Delete Chat', 'Remove this conversation?', [
+          showAlert('Delete Chat', 'Remove this conversation?', [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Delete',
@@ -509,7 +550,10 @@ export default function Chatbot() {
 
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 } catch (e) {
-                  Alert.alert('Error', 'Failed to delete chat');
+                  showAlert('Error', 'Failed to delete chat', undefined, {
+                    icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                    type: 'destructive',
+                  });
                 }
               },
             },
@@ -522,10 +566,12 @@ export default function Chatbot() {
           setCurrentSessionId(Date.now().toString(36) + Math.random().toString(36).substr(2));
           setHistoryDrawerVisible(false);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('New Chat Started', 'Ready for a fresh conversation! 🍳');
+          showAlert('New Chat Started', 'Ready for a fresh conversation! 🍳', undefined, {
+            icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+          });
         }}
         onClearAll={() => {
-          Alert.alert(
+          showAlert(
             'Clear History',
             'Are you sure you want to delete all chat history? This cannot be undone.',
             [
@@ -541,11 +587,18 @@ export default function Chatbot() {
                     setHistoryDrawerVisible(false);
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                   } catch (e) {
-                    Alert.alert('Error', 'Failed to clear history');
+                    showAlert('Error', 'Failed to clear history', undefined, {
+                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                      type: 'destructive',
+                    });
                   }
                 },
               },
             ],
+            {
+              icon: <Trash size={32} color="#EF4444" variant="Bold" />,
+              type: 'destructive',
+            },
           );
         }}
       />

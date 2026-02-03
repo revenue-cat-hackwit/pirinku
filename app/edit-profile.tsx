@@ -6,7 +6,6 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   Text,
@@ -15,6 +14,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, TickCircle, InfoCircle } from 'iconsax-react-native';
 
 // Helper function to get user initials
 const getInitials = (fullName?: string, username?: string): string => {
@@ -68,7 +69,14 @@ export default function EditProfileScreen() {
       // Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please grant camera roll permissions to upload an avatar.');
+        showAlert(
+          'Permission Required',
+          'Please grant camera roll permissions to upload an avatar.',
+          undefined,
+          {
+            icon: <InfoCircle size={32} color="#F59E0B" variant="Bold" />,
+          },
+        );
         return;
       }
 
@@ -85,7 +93,10 @@ export default function EditProfileScreen() {
       }
     } catch (error: any) {
       console.error('Image picker error:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      showAlert('Error', 'Failed to pick image', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     }
   };
 
@@ -109,10 +120,15 @@ export default function EditProfileScreen() {
 
       // Update avatar URL locally
       setAvatarUrl(uploadResponse.data.url);
-      Alert.alert('Success', 'Avatar uploaded! Don\'t forget to save your changes.');
+      showAlert('Success', "Avatar uploaded! Don't forget to save your changes.", undefined, {
+        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+      });
     } catch (error: any) {
       console.error('Upload error:', error);
-      Alert.alert('Upload Failed', error.message || 'Failed to upload avatar');
+      showAlert('Upload Failed', error.message || 'Failed to upload avatar', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     } finally {
       setUploading(false);
     }
@@ -133,11 +149,16 @@ export default function EditProfileScreen() {
       // Update auth store with new user data
       useAuthStore.setState({ user: response.data.user });
 
-      Alert.alert('Success', 'Profile updated successfully!');
+      showAlert('Success', 'Profile updated successfully!', undefined, {
+        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+      });
       router.back();
     } catch (error: any) {
       console.error('Update error:', error);
-      Alert.alert('Error', error.message || 'Failed to update profile');
+      showAlert('Error', error.message || 'Failed to update profile', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -174,9 +195,7 @@ export default function EditProfileScreen() {
               className="items-center justify-center rounded-full bg-[#8BD65E]"
               style={{ width: 100, height: 100 }}
             >
-              <Text className="font-visby-bold text-4xl text-white">
-                {userInitials}
-              </Text>
+              <Text className="font-visby-bold text-4xl text-white">{userInitials}</Text>
             </View>
           )}
           <TouchableOpacity onPress={pickImage} disabled={uploading} className="mt-3">
@@ -214,12 +233,8 @@ export default function EditProfileScreen() {
 
           <View>
             <Text className="mb-2 ml-1 font-visby text-gray-500">Email</Text>
-            <Text className="pb-2 font-visby text-base text-gray-400">
-              {user?.email || '-'}
-            </Text>
-            <Text className="font-visby text-xs text-gray-400">
-              Email cannot be changed
-            </Text>
+            <Text className="pb-2 font-visby text-base text-gray-400">{user?.email || '-'}</Text>
+            <Text className="font-visby text-xs text-gray-400">Email cannot be changed</Text>
           </View>
 
           <View>
@@ -227,9 +242,7 @@ export default function EditProfileScreen() {
             <Text className="pb-2 font-visby text-base text-gray-400">
               @{user?.username || '-'}
             </Text>
-            <Text className="font-visby text-xs text-gray-400">
-              Username cannot be changed
-            </Text>
+            <Text className="font-visby text-xs text-gray-400">Username cannot be changed</Text>
           </View>
         </View>
 

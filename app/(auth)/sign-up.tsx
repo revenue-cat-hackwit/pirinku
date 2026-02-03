@@ -6,8 +6,10 @@ import AuthTextField from '@/components/auth/AuthTextField';
 import { useAuthStore } from '@/lib/store/authStore';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 
 export default function SignUpPage() {
   const [username, setUsername] = useState('');
@@ -22,7 +24,10 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (errorMessage) {
-      Alert.alert('Error', errorMessage);
+      showAlert('Error', errorMessage, undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
       setErrorMessage(null);
     }
   }, [errorMessage]);
@@ -107,7 +112,7 @@ export default function SignUpPage() {
         </View>
 
         <AuthPrimaryButton
-          title={isLoading ? "Creating Account..." : "Sign Up"}
+          title={isLoading ? 'Creating Account...' : 'Sign Up'}
           containerClassName="mt-6"
           onPress={handleSignUp}
           disabled={isLoading}

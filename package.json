@@ -1,5 +1,5 @@
 {
-  "name": "test",
+  "name": "recook",
   "version": "1.0.0",
   "scripts": {
     "android": "expo run:android",
@@ -22,6 +22,7 @@
     "expo-asset": "~12.0.12",
     "expo-audio": "~1.1.1",
     "expo-av": "~16.0.8",
+    "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.20",
     "expo-font": "~14.0.11",

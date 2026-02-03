@@ -1,29 +1,68 @@
 import { useAuthStore } from '@/lib/store/authStore';
 import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 import { Stack } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import '../global.css';
 import { useSettingsStore } from '@/lib/store/settingsStore';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import { CustomAlertModal } from '@/components/CustomAlertModal';
+import { GlobalAlert, AlertConfig } from '@/lib/utils/globalAlert';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  useEffect(() => {
-    useSettingsStore.getState().loadTheme();
-  }, []);
+  const [appIsReady, setAppIsReady] = useState(false);
+  const [globalAlertConfig, setGlobalAlertConfig] = useState<AlertConfig>({
+    visible: false,
+    title: '',
+    message: '',
+    confirmText: 'OK',
+    showCancel: false,
+  });
 
   useEffect(() => {
-    useSubscriptionStore.getState().initialize();
+    async function prepare() {
+      try {
+        // Parallelize initialization for speed
+        await Promise.all([
+          useSettingsStore.getState().loadTheme(),
+          useSettingsStore.getState().loadLanguage(),
+          useSubscriptionStore.getState().initialize(),
+          useAuthStore.getState().initializeAuth(),
+        ]);
+      } catch (e) {
+        console.warn('Error loading app resources:', e);
+      } finally {
+        // Tell the application to render
+        setAppIsReady(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
   }, []);
 
+  // Register global alert
   useEffect(() => {
-    useSettingsStore.getState().loadLanguage();
+    GlobalAlert.register((config) => {
+      setGlobalAlertConfig(config);
+    });
+
+    return () => {
+      GlobalAlert.unregister();
+    };
   }, []);
 
-  // Initialize auth from stored JWT token
-  useEffect(() => {
-    useAuthStore.getState().initializeAuth();
-  }, []);
+  const closeGlobalAlert = () => {
+    setGlobalAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  if (!appIsReady) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -37,6 +76,27 @@ export default function RootLayout() {
         <Stack.Screen name="meal-planner" options={{ presentation: 'modal' }} />
         <Stack.Screen name="pantry" options={{ presentation: 'modal' }} />
       </Stack>
+
+      {/* Global Alert Modal */}
+      <CustomAlertModal
+        visible={globalAlertConfig.visible}
+        title={globalAlertConfig.title}
+        message={globalAlertConfig.message}
+        type={globalAlertConfig.type}
+        icon={globalAlertConfig.icon}
+        confirmText={globalAlertConfig.confirmText}
+        cancelText={globalAlertConfig.cancelText}
+        showCancel={globalAlertConfig.showCancel}
+        onClose={closeGlobalAlert}
+        onConfirm={() => {
+          globalAlertConfig.onConfirm?.();
+          closeGlobalAlert();
+        }}
+        onCancel={() => {
+          globalAlertConfig.onCancel?.();
+          closeGlobalAlert();
+        }}
+      />
     </GestureHandlerRootView>
   );
 }

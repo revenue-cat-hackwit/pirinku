@@ -1,5 +1,7 @@
 import React, { useLayoutEffect, useState } from 'react';
-import { View, TextInput, TouchableOpacity, ActivityIndicator, Alert, Text } from 'react-native';
+import { View, TextInput, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSettingsStore } from '@/lib/store/settingsStore';
@@ -46,7 +48,10 @@ export const ChatInput = ({
           onChangeText(res.transcript);
         }
       } catch (e) {
-        Alert.alert('Error', 'Failed to process audio.');
+        showAlert('Error', 'Failed to process audio.', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
       } finally {
         setIsTranscribing(false);
       }
@@ -67,7 +72,10 @@ export const ChatInput = ({
           }, 500);
         }
       } catch (e) {
-        Alert.alert('Error', 'Failed to process audio.');
+        showAlert('Error', 'Failed to process audio.', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
       } finally {
         setIsTranscribing(false);
       }

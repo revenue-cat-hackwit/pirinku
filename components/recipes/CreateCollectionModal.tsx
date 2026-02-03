@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  Alert,
-} from 'react-native';
+import { View, Text, Modal, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import { Recipe } from '@/lib/types';
@@ -43,11 +36,22 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
   const handleSubmit = () => {
     if (!collectionName.trim()) {
-      Alert.alert('Missing Name', 'Please enter a name for your collection.');
+      showAlert('Missing Name', 'Please enter a name for your collection.', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
       return;
     }
     if (selectedIds.size === 0) {
-      Alert.alert('No Recipes', 'Please select at least one recipe to start this collection.');
+      showAlert(
+        'No Recipes',
+        'Please select at least one recipe to start this collection.',
+        undefined,
+        {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        },
+      );
       return;
     }
     onCreate(collectionName.trim(), Array.from(selectedIds));

@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert, // Keep for confirmation dialogs if needed, or remove
   ActivityIndicator,
 } from 'react-native';
 import { Recipe } from '@/lib/types';
-import { RecipeService } from '@/lib/services/recipeService';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,16 +16,14 @@ import Toast, { ToastRef } from '@/components/Toast';
 import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 import { useShoppingListStore } from '@/lib/store/shoppingListStore';
 import RevenueCatUI from 'react-native-purchases-ui';
-
 import { usePreferencesStore } from '@/lib/store/preferencesStore';
 import * as Haptics from 'expo-haptics';
-
 import { ChefLoading } from '@/components/ChefLoading';
-import { MagicStar } from 'iconsax-react-native';
-
 import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
 import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
+import { CustomAlertModal } from '@/components/CustomAlertModal';
+import { CustomCameraModal } from '@/components/CustomCameraModal';
 
 export default function GenerateScreen() {
   // Dependencies
@@ -42,6 +38,9 @@ export default function GenerateScreen() {
   // Manual Creation State
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [tempManualRecipe, setTempManualRecipe] = useState<Recipe | null>(null);
+
+  // Custom Camera State
+  const [isCameraVisible, setIsCameraVisible] = useState(false);
 
   // Paywall Logic
   const handlePresentPaywall = async () => {
@@ -62,12 +61,14 @@ export default function GenerateScreen() {
     setUploadedFiles,
     loading,
     loadingMessage,
-    uploading,
     currentRecipe,
     setCurrentRecipe,
     removeFile,
     handleUploadMultiple,
     generate,
+    alertConfig,
+    hideAlert,
+    showAlert,
   } = useRecipeGenerator({
     preferences,
     toastRef,
@@ -95,26 +96,27 @@ export default function GenerateScreen() {
     if (!result.canceled) handleUploadMultiple(result.assets);
   };
 
+  // Replace System Camera with Custom Camera Intent
   const handleLaunchCamera = async () => {
     if (uploadedFiles.length >= 5) {
       toastRef.current?.show('Max 5 photos/videos at a time.', 'error');
       return;
     }
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      toastRef.current?.show('Camera Permission Denied', 'error');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      quality: 0.5,
-      // aspect: [4, 3], // Optional: standard aspect ratio
-    });
-    if (!result.canceled) handleUploadMultiple(result.assets);
+    // Open Custom Camera
+    setIsCameraVisible(true);
   };
 
-  // ... renderRecipeCard ... (omitted from replace unless modified)
+  // Handle Photo from Custom Camera
+  const handleCameraCapture = (uri: string) => {
+    const asset: any = {
+      uri,
+      type: 'image',
+      width: 1000,
+      height: 1000,
+    };
+    handleUploadMultiple([asset]);
+    setIsCameraVisible(false);
+  };
 
   const renderRecipeCard = (recipe: Recipe, isBrief = false) => (
     <View className="mb-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -177,7 +179,7 @@ export default function GenerateScreen() {
               )}
             </View>
 
-            {/* Community Publish Button - NEW */}
+            {/* Community Publish Button */}
             {!isBrief && (
               <TouchableOpacity
                 onPress={async () => {
@@ -186,9 +188,9 @@ export default function GenerateScreen() {
                     await CommunityService.publishRecipe(recipe);
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     toastRef.current?.show('Published to Community Feed!', 'success');
-                    Alert.alert('Success', 'Your recipe is now live on the Community Feed! 🌍');
+                    showAlert('Success', 'Your recipe is now live on the Community Feed! 🌍');
                   } catch (e) {
-                    Alert.alert('Error', 'Failed to publish recipe.');
+                    showAlert('Error', 'Failed to publish recipe.');
                   }
                 }}
                 className="mb-4 flex-row items-center justify-center rounded-xl border border-blue-100 bg-blue-50 py-3"
@@ -237,7 +239,6 @@ export default function GenerateScreen() {
 
   const handleStartManual = () => {
     setTempManualRecipe({
-      id: '', // Empty ID indicates new
       title: '',
       description: '',
       ingredients: [''],
@@ -255,21 +256,20 @@ export default function GenerateScreen() {
   const handleSaveManual = async (recipe: Recipe) => {
     try {
       if (!recipe.title.trim()) {
-        Alert.alert('Error', 'Please provide a title');
+        showAlert('Error', 'Please provide a title');
         return;
       }
 
       const saved = await saveRecipe(recipe);
       setManualModalVisible(false);
 
-      // Show success and maybe redirect or show details
-      Alert.alert('Recipe Created', 'Your recipe has been saved to your collection!', [
-        { text: 'View in Collection', onPress: () => {} }, // Router push?
-        { text: 'OK' },
-      ]);
+      // Show success
+      showAlert('Recipe Created', 'Your recipe has been saved to your collection!', {
+        confirmText: 'OK',
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showAlert('Error', e.message);
     }
   };
 
@@ -278,7 +278,7 @@ export default function GenerateScreen() {
       {/* LOADING OVERLAY */}
       {loading && <ChefLoading status={loadingMessage} />}
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 24 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {/* Header */}
         <View className="mb-8 mt-4">
           <Text className="font-visby-bold text-4xl leading-tight text-gray-900">
@@ -422,6 +422,26 @@ export default function GenerateScreen() {
       {/* Toast */}
       <Toast ref={toastRef} />
 
+      {/* Custom Alert Modal */}
+      <CustomAlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        showCancel={alertConfig.showCancel}
+        onConfirm={alertConfig.onConfirm}
+        onClose={hideAlert}
+        type={alertConfig.type}
+      />
+
+      {/* Custom Camera Modal */}
+      <CustomCameraModal
+        visible={isCameraVisible}
+        onClose={() => setIsCameraVisible(false)}
+        onPhotoTaken={handleCameraCapture}
+      />
+
       {/* Manual Creation Modal */}
       <RecipeDetailModal
         recipe={tempManualRecipe}
@@ -443,7 +463,7 @@ export default function GenerateScreen() {
             // If user edits the generated result, save it
             await saveRecipe(updated);
             setCurrentRecipe(null); // Close after save
-            Alert.alert('Saved', 'Recipe saved to your collection.');
+            showAlert('Saved', 'Recipe saved to your collection.');
           }}
           onDelete={() => setCurrentRecipe(null)}
           onShare={() => {}}

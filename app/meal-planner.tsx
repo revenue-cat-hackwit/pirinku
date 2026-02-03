@@ -8,7 +8,6 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
-  Alert,
   Pressable,
   Share,
   TextInput,
@@ -28,6 +27,7 @@ import { PantryService, PantryItem } from '@/lib/services/pantryService';
 import * as Haptics from 'expo-haptics';
 import { CustomAlertModal } from '@/components/CustomAlertModal';
 import { TickCircle, Danger, Trash, ShoppingCart, MagicStar } from 'iconsax-react-native';
+import Animated, { ZoomIn, ZoomOut, Easing } from 'react-native-reanimated';
 
 // Format Date Utils
 const getDayName = (date: Date) => {
@@ -230,15 +230,36 @@ function MealPlannerContent() {
 
   // Auto Plan Modal State
   const [isAutoPlanModalOpen, setIsAutoPlanModalOpen] = useState(false);
+  const [generationMode, setGenerationMode] = useState<'replace' | 'fill'>('replace');
+  const [showGenerationModeModal, setShowGenerationModeModal] = useState(false);
+  const [existingMealsCount, setExistingMealsCount] = useState(0);
 
   const handleGeneratePlan = () => {
-    setIsAutoPlanModalOpen(true);
+    // Check if there are any existing meals in the next 7 days
+    const today = new Date();
+    const next7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      return formatDate(d);
+    });
+
+    const existingMeals = mealPlans.filter((plan) => next7Days.includes(plan.date));
+
+    if (existingMeals.length > 0) {
+      // Show custom modal with options
+      setExistingMealsCount(existingMeals.length);
+      setShowGenerationModeModal(true);
+    } else {
+      // No existing meals, proceed directly with replace mode
+      setGenerationMode('replace');
+      setIsAutoPlanModalOpen(true);
+    }
   };
 
   const handleConfirmPlan = async (prefs: any) => {
     setLoading(true);
     try {
-      await MealPlannerService.generateWeeklyPlan(formatDate(new Date()), prefs);
+      await MealPlannerService.generateWeeklyPlan(formatDate(new Date()), prefs, generationMode);
       showAlert({
         title: 'Success',
         message: 'Weekly meal plan created!',
@@ -737,6 +758,19 @@ function MealPlannerContent() {
                       console.log('Cart button pressed for:', item.recipe.title);
 
                       const ingredients = item.recipe.ingredients || [];
+
+                      // Check if recipe has no ingredients
+                      if (ingredients.length === 0) {
+                        showAlert({
+                          title: 'Recipe Incomplete',
+                          message:
+                            'This recipe has no ingredients yet. Please complete the recipe details first.',
+                          icon: <Danger size={32} color="#F59E0B" variant="Bold" />,
+                          type: 'default',
+                        });
+                        return;
+                      }
+
                       const ingredientsToAdd = ingredients
                         .map((ing) => {
                           const name = typeof ing === 'string' ? ing : (ing as any).name || '';
@@ -754,12 +788,19 @@ function MealPlannerContent() {
                       if (ingredientsToAdd.length > 0) {
                         addToShoppingList(ingredientsToAdd, item.recipe.title);
                         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        Alert.alert(
-                          'Added! 🛒',
-                          `${ingredientsToAdd.length} ingredients from "${item.recipe.title}" added to shopping list.`,
-                        );
+                        showAlert({
+                          title: 'Added! 🛒',
+                          message: `${ingredientsToAdd.length} ingredients from "${item.recipe.title}" added to shopping list.`,
+                          icon: <ShoppingCart size={32} color="#3B82F6" variant="Bold" />,
+                          type: 'default',
+                        });
                       } else {
-                        Alert.alert('All Set!', 'All ingredients are already in your pantry.');
+                        showAlert({
+                          title: 'All Set!',
+                          message: 'All ingredients are already in your pantry.',
+                          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                          type: 'default',
+                        });
                       }
                     }}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -1083,6 +1124,88 @@ function MealPlannerContent() {
           onSubmit={handleConfirmPlan}
           isLoading={loading}
         />
+
+        {/* Generation Mode Selection Modal */}
+        <Modal
+          visible={showGenerationModeModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowGenerationModeModal(false)}
+        >
+          <View className="flex-1 items-center justify-center bg-black/50 px-6">
+            <Animated.View
+              entering={ZoomIn.duration(200).easing(Easing.out(Easing.quad))}
+              exiting={ZoomOut.duration(200).easing(Easing.in(Easing.quad))}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
+            >
+              <Text className="mb-2 font-visby-bold text-xl text-gray-900">
+                Existing Meals Found
+              </Text>
+              <Text className="mb-6 font-visby text-base leading-6 text-gray-600">
+                You have {existingMealsCount} meal(s) already planned for the next 7 days.
+                {'\n\n'}
+                How would you like to proceed?
+              </Text>
+
+              {/* Action Buttons */}
+              <View className="gap-3">
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowGenerationModeModal(false);
+                    setGenerationMode('replace');
+                    setIsAutoPlanModalOpen(true);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  }}
+                  className="active:scale-98 items-center rounded-2xl bg-red-500 py-4"
+                  style={{
+                    shadowColor: '#EF4444',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  <Text className="font-visby-bold text-base uppercase tracking-wide text-white">
+                    Replace All
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowGenerationModeModal(false);
+                    setGenerationMode('fill');
+                    setIsAutoPlanModalOpen(true);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  }}
+                  className="active:scale-98 items-center rounded-2xl bg-[#8BD65E] py-4"
+                  style={{
+                    shadowColor: '#8BD65E',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  <Text className="font-visby-bold text-base uppercase tracking-wide text-white">
+                    Fill Empty Only
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowGenerationModeModal(false);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  className="active:scale-98 items-center rounded-2xl border-2 border-gray-200 bg-white py-4"
+                >
+                  <Text className="font-visby-bold text-base uppercase tracking-wide text-gray-600">
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
 
         <CustomAlertModal
           visible={alertConfig.visible}

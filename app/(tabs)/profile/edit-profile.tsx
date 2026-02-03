@@ -5,8 +5,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { type ImagePickerAsset, launchImageLibraryAsync } from 'expo-image-picker';
 import { Stack, useNavigation, useRouter } from 'expo-router';
 import React, { useLayoutEffect, useState, useEffect } from 'react';
-import { Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from 'react-native';
 import { ProfileUser } from '@/lib/types/auth';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, TickCircle } from 'iconsax-react-native';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -44,7 +54,10 @@ export default function EditProfileScreen() {
         setUserData(response.data.user);
       } catch (error: any) {
         console.error('Failed to fetch profile:', error);
-        Alert.alert('Error', 'Failed to load profile data');
+        showAlert('Error', 'Failed to load profile data', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
       } finally {
         setLoadingProfile(false);
       }
@@ -79,9 +92,14 @@ export default function EditProfileScreen() {
         bio,
         avatarBase64: avatarImageResult?.base64 || undefined,
       });
-      Alert.alert('Success', 'Profile updated successfully');
+      showAlert('Success', 'Profile updated successfully', undefined, {
+        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+      });
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showAlert('Error', error.message, undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -132,10 +150,7 @@ export default function EditProfileScreen() {
         <View className="mb-8 items-center">
           <Image
             source={{
-              uri:
-                avatarImageResult?.uri ||
-                userData?.avatar ||
-                'https://via.placeholder.com/150',
+              uri: avatarImageResult?.uri || userData?.avatar || 'https://via.placeholder.com/150',
             }}
             style={{ width: 100, height: 100, borderRadius: 50 }}
           />

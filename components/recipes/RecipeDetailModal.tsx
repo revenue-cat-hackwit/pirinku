@@ -6,10 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
-  Linking,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, TickCircle } from 'iconsax-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -20,6 +21,7 @@ import { Recipe } from '@/lib/types';
 import { useShoppingListStore } from '@/lib/store/shoppingListStore';
 import { Video, ResizeMode } from 'expo-av';
 import { CollectionSelectorModal } from './CollectionSelectorModal';
+import { RecipeService } from '@/lib/services/recipeService';
 
 interface RecipeDetailModalProps {
   recipe: Recipe | null;
@@ -169,7 +171,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
           (tempRecipe.steps && tempRecipe.steps.some((s) => s.instruction?.trim())));
 
       if (hasData) {
-        Alert.alert(
+        showAlert(
           'Discard Recipe?',
           'You have unsaved changes. Are you sure you want to discard this recipe?',
           [
@@ -182,6 +184,10 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
               },
             },
           ],
+          {
+            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+            type: 'destructive',
+          },
         );
         return;
       }
@@ -192,17 +198,25 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
     // If editing existing recipe, check for unsaved changes
     if (hasUnsavedChanges()) {
-      Alert.alert('Unsaved Changes', 'You have unsaved changes. Do you want to discard them?', [
-        { text: 'Keep Editing', style: 'cancel' },
-        {
-          text: 'Discard Changes',
-          style: 'destructive',
-          onPress: () => {
-            setIsEditing(false);
-            setTempRecipe(null);
+      showAlert(
+        'Unsaved Changes',
+        'You have unsaved changes. Do you want to discard them?',
+        [
+          { text: 'Keep Editing', style: 'cancel' },
+          {
+            text: 'Discard Changes',
+            style: 'destructive',
+            onPress: () => {
+              setIsEditing(false);
+              setTempRecipe(null);
+            },
           },
+        ],
+        {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
         },
-      ]);
+      );
       return;
     }
 
@@ -213,7 +227,10 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   const handleSaveEdit = async () => {
     if (tempRecipe) {
       if (!tempRecipe.title.trim()) {
-        Alert.alert('Missing Info', 'Please give your recipe a title!');
+        showAlert('Missing Info', 'Please give your recipe a title!', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
         return;
       }
 
@@ -227,7 +244,9 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
       const ingredientsData = (recipe.ingredients || []).map((name) => ({ name }));
       addToShoppingList(ingredientsData, recipe.title);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', 'Ingredients added to Shopping List!');
+      showAlert('Success', 'Ingredients added to Shopping List!', undefined, {
+        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+      });
     }
   };
 
@@ -265,7 +284,10 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
       if (supported) {
         await Linking.openURL(displayRecipe.sourceUrl);
       } else {
-        Alert.alert('Error', 'Cannot open this link');
+        showAlert('Error', 'Cannot open this link', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
       }
     }
   };
@@ -495,17 +517,27 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                         onPress={async () => {
                           // Validate title and description
                           if (!tempRecipe?.title?.trim()) {
-                            Alert.alert(
+                            showAlert(
                               'Title Required',
                               'Please enter a recipe title first before using AI generation.',
+                              undefined,
+                              {
+                                icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                                type: 'destructive',
+                              },
                             );
                             return;
                           }
 
                           if (!tempRecipe?.description?.trim()) {
-                            Alert.alert(
+                            showAlert(
                               'Description Required',
                               'Please add a brief description of your recipe before using AI generation.',
+                              undefined,
+                              {
+                                icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                                type: 'destructive',
+                              },
                             );
                             return;
                           }
@@ -516,16 +548,25 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                             try {
                               await onGenerateFull(tempRecipe);
                               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                              Alert.alert(
+                              showAlert(
                                 'Generated! ✨',
                                 'AI has generated ingredients and steps for your recipe. Review and edit as needed.',
+                                undefined,
+                                {
+                                  icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                                },
                               );
                             } catch (e: any) {
                               console.error(e);
                               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                              Alert.alert(
+                              showAlert(
                                 'Error',
                                 e.message || 'Failed to generate recipe with AI.',
+                                undefined,
+                                {
+                                  icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                                  type: 'destructive',
+                                },
                               );
                             } finally {
                               setIsGenerating(false);
@@ -564,30 +605,24 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
               <TouchableOpacity
                 onPress={async () => {
                   if (!tempRecipe?.ingredients || tempRecipe.ingredients.length === 0) {
-                    Alert.alert('Error', 'Please add ingredients first!');
+                    showAlert('Error', 'Please add ingredients first!', undefined, {
+                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                      type: 'destructive',
+                    });
                     return;
                   }
 
-                  // Show simple loading feedback (could be better state)
-                  const originalText = 'Calculating...';
-                  // You might want a dedicated loading state, but let's use Haptics for now
+                  // Show simple loading feedback
                   Haptics.selectionAsync();
 
                   try {
-                    // Find 'RecipeService' import - (Assuming it's available or need to add logic)
-                    // Since we didn't import RecipeService in the scope above in the original file view,
-                    // we need to ensure it is imported.
-                    // *Wait*, RecipeService is NOT imported in the file currently (based on previous ViewFile).
-                    // I need to add the import in a separate edit or assume it's there.
-                    // I will use a separate edit to add the import first if needed but let's assume I can dynamic import or use existing.
-                    // Actually, I should check imports.
-
-                    // Let's assume I'll add the logic inside the button for now or define the handler outside.
-                    const { RecipeService } = require('@/lib/services/recipeService');
-
-                    Alert.alert(
+                    showAlert(
                       'Calculating...',
                       'AI is estimating nutrition facts based on ingredients...',
+                      undefined,
+                      {
+                        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                      },
                     );
                     const result = await RecipeService.calculateNutrition(
                       tempRecipe.ingredients,
@@ -604,13 +639,20 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                         : null,
                     );
 
-                    Alert.alert(
+                    showAlert(
                       'Done',
                       `Estimated: ${result.calories_per_serving} kcal, ${result.time_minutes} mins`,
+                      undefined,
+                      {
+                        icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                      },
                     );
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  } catch (e) {
-                    Alert.alert('Error', 'Failed to calculate nutrition');
+                  } catch {
+                    showAlert('Error', 'Failed to calculate nutrition', undefined, {
+                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                      type: 'destructive',
+                    });
                   }
                 }}
                 className="mb-2 flex-row items-center justify-center rounded-lg bg-indigo-50 py-2 dark:bg-indigo-900/20"
@@ -732,9 +774,13 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                     <TouchableOpacity
                       className="rounded-lg bg-gray-200 p-3 dark:bg-gray-700"
                       onPress={() =>
-                        Alert.alert(
+                        showAlert(
                           'Tip',
                           'Type a collection name and press enter on keyboard to add.',
+                          undefined,
+                          {
+                            icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                          },
                         )
                       }
                     >
@@ -1043,7 +1089,10 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
               <TouchableOpacity
                 onPress={() => {
                   if (!displayRecipe.id) {
-                    Alert.alert('Error', 'Recipe ID missing!');
+                    showAlert('Error', 'Recipe ID missing!', undefined, {
+                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                      type: 'destructive',
+                    });
                     return;
                   }
                   onDelete(displayRecipe.id);

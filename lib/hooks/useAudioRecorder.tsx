@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Audio } from 'expo-av';
-import { Alert } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 
 interface UseAudioRecorderOptions {
   onSilenceDetected?: () => void;
@@ -45,7 +46,10 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
       if (!hasPermission) {
         const granted = await requestPermission();
         if (!granted) {
-          Alert.alert('Izin Ditolak', 'Mohon izinkan akses mikrofon.');
+          showAlert('Izin Ditolak', 'Mohon izinkan akses mikrofon.', undefined, {
+            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+            type: 'destructive',
+          });
           return;
         }
       }

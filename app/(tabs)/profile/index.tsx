@@ -9,7 +9,6 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback } from 'react';
 
 import {
-  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -17,6 +16,8 @@ import {
   ActivityIndicator,
   FlatList,
 } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 
@@ -90,7 +91,10 @@ export default function Profile() {
       setProfileData(response.data.user);
     } catch (error: any) {
       console.error('Failed to fetch profile:', error);
-      Alert.alert('Error', error.message || 'Failed to load profile');
+      showAlert('Error', error.message || 'Failed to load profile', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -105,9 +109,7 @@ export default function Profile() {
       if (tab === 'My Posts') {
         const response = await PostService.getPosts();
         // Filter posts by current user
-        const userPosts = response.data.posts.filter(
-          (post) => post.user.id === profileData?.id
-        );
+        const userPosts = response.data.posts.filter((post) => post.user.id === profileData?.id);
         setMyPosts(userPosts);
       } else if (tab === 'Reply') {
         const response = await PostService.getMyComments();
@@ -217,13 +219,18 @@ export default function Profile() {
         return (
           <View className="items-center py-12">
             <Ionicons name="document-text-outline" size={48} color="#9CA3AF" />
-            <Text className="mt-3 font-visby text-gray-500 dark:text-gray-400">
-              No posts yet
-            </Text>
+            <Text className="mt-3 font-visby text-gray-500 dark:text-gray-400">No posts yet</Text>
           </View>
         );
       }
-      return <FlatList data={myPosts} renderItem={renderPostItem} keyExtractor={(item) => item.id} scrollEnabled={false} />;
+      return (
+        <FlatList
+          data={myPosts}
+          renderItem={renderPostItem}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+        />
+      );
     }
 
     if (activeTab === 'Reply') {
@@ -237,7 +244,14 @@ export default function Profile() {
           </View>
         );
       }
-      return <FlatList data={myComments} renderItem={renderCommentItem} keyExtractor={(item, index) => `${item.post.id}-${index}`} scrollEnabled={false} />;
+      return (
+        <FlatList
+          data={myComments}
+          renderItem={renderCommentItem}
+          keyExtractor={(item, index) => `${item.post.id}-${index}`}
+          scrollEnabled={false}
+        />
+      );
     }
 
     if (activeTab === 'Saved') {
@@ -251,7 +265,14 @@ export default function Profile() {
           </View>
         );
       }
-      return <FlatList data={savedPosts} renderItem={renderPostItem} keyExtractor={(item) => item.id} scrollEnabled={false} />;
+      return (
+        <FlatList
+          data={savedPosts}
+          renderItem={renderPostItem}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+        />
+      );
     }
 
     return null;
@@ -286,9 +307,7 @@ export default function Profile() {
                 className="mb-3 items-center justify-center rounded-full bg-[#8BD65E]"
                 style={{ width: 100, height: 100 }}
               >
-                <Text className="font-visby-bold text-4xl text-white">
-                  {userInitials}
-                </Text>
+                <Text className="font-visby-bold text-4xl text-white">{userInitials}</Text>
               </View>
             )}
             <Text className="mb-1 font-visby-bold text-xl text-black dark:text-white">
@@ -352,14 +371,16 @@ export default function Profile() {
               <TouchableOpacity
                 key={tab}
                 onPress={() => setActiveTab(tab)}
-                className={`flex-1 items-center border-b-2 py-3 ${activeTab === tab ? 'border-[#8BD65E]' : 'border-transparent'
-                  }`}
+                className={`flex-1 items-center border-b-2 py-3 ${
+                  activeTab === tab ? 'border-[#8BD65E]' : 'border-transparent'
+                }`}
               >
                 <Text
-                  className={`font-visby text-sm ${activeTab === tab
-                    ? 'font-bold text-[#8BD65E]'
-                    : 'text-gray-400 dark:text-gray-500'
-                    }`}
+                  className={`font-visby text-sm ${
+                    activeTab === tab
+                      ? 'font-bold text-[#8BD65E]'
+                      : 'text-gray-400 dark:text-gray-500'
+                  }`}
                 >
                   {tab}
                 </Text>

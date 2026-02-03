@@ -7,7 +7,6 @@ import {
   RefreshControl,
   Modal,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +15,9 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { PantryService, PantryItem } from '@/lib/services/pantryService';
 import { RecipeService } from '@/lib/services/recipeService';
+import { CustomCameraModal } from '@/components/CustomCameraModal';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, TickCircle } from 'iconsax-react-native';
 
 const CATEGORIES = ['Dairy', 'Vegetable', 'Fruit', 'Meat', 'Grain', 'Spice', 'Other'];
 
@@ -37,6 +39,9 @@ export default function PantryScreen() {
   const [showScanPreview, setShowScanPreview] = useState(false);
   const [scannedItems, setScannedItems] = useState<any[]>([]);
   const [loadingMessage, setLoadingMessage] = useState('');
+
+  // Custom Camera State
+  const [isCameraVisible, setIsCameraVisible] = useState(false);
 
   const loadPantry = useCallback(async () => {
     try {
@@ -61,7 +66,10 @@ export default function PantryScreen() {
 
   const handleAddItem = async () => {
     if (!itemName) {
-      Alert.alert('Error', 'Please enter a name');
+      showAlert('Error', 'Please enter a name', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
       return;
     }
 
@@ -85,7 +93,10 @@ export default function PantryScreen() {
       setDaysUntilExpiry('7');
       loadPantry(); // Refresh list to get real IDs
     } catch (e) {
-      Alert.alert('Error', 'Failed to add item');
+      showAlert('Error', 'Failed to add item', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     }
   };
 
@@ -107,45 +118,54 @@ export default function PantryScreen() {
     return diffDays;
   };
 
+  // Open Custom Camera
   const handleCameraScan = async () => {
-    // 1. Pick Image
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
-      allowsEditing: true,
-      aspect: [4, 3],
-    });
+    setIsCameraVisible(true);
+  };
 
-    if (result.canceled || !result.assets[0]) return;
-
+  // Handle photo from custom camera
+  const handleCameraCapture = async (uri: string) => {
+    setIsCameraVisible(false);
     setAnalyzing(true);
-    try {
-      // 2. Upload
-      setLoadingMessage('Uploading image...');
-      const publicUrl = await RecipeService.uploadMedia(result.assets[0].uri);
 
-      // 3. Analyze
+    try {
+      // Upload
+      setLoadingMessage('Uploading image...');
+      const publicUrl = await RecipeService.uploadMedia(uri);
+
+      // Analyze
       setLoadingMessage('Analyzing with AI...');
       const detectedItems = await PantryService.analyzeFromImage(publicUrl);
 
       if (!detectedItems || detectedItems.length === 0) {
-        Alert.alert(
+        showAlert(
           'No Items Found',
           "AI couldn't detect any food items. Try a clearer photo with better lighting.",
-          [{ text: 'OK' }],
+          undefined,
+          {
+            icon: <Danger size={32} color="#F59E0B" variant="Bold" />,
+          },
         );
         return;
       }
 
-      // 4. Show Preview Modal
+      // Show Preview Modal
       setScannedItems(detectedItems);
       setShowScanPreview(true);
     } catch (_e: any) {
       console.error('Scan Error:', _e);
-      Alert.alert('Scan Failed', _e.message || 'Please try again.', [
-        { text: 'Add Manually', onPress: () => setIsModalOpen(true) },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
+      showAlert(
+        'Scan Failed',
+        _e.message || 'Please try again.',
+        [
+          { text: 'Add Manually', onPress: () => setIsModalOpen(true) },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+        {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        },
+      );
     } finally {
       setAnalyzing(false);
       setLoadingMessage('');
@@ -183,16 +203,26 @@ export default function PantryScreen() {
       // }
 
       if (addedCount > 0) {
-        Alert.alert(
+        showAlert(
           'Success! 🎉',
           `Added ${addedCount} item${addedCount > 1 ? 's' : ''} to your pantry!`,
+          undefined,
+          {
+            icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+          },
         );
         loadPantry();
       } else {
-        Alert.alert('Error', 'Failed to add items. Please try again.');
+        showAlert('Error', 'Failed to add items. Please try again.', undefined, {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to save items.');
+      showAlert('Error', e.message || 'Failed to save items.', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
     } finally {
       setAnalyzing(false);
       setScannedItems([]);
@@ -558,6 +588,13 @@ export default function PantryScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Custom Camera Modal */}
+      <CustomCameraModal
+        visible={isCameraVisible}
+        onClose={() => setIsCameraVisible(false)}
+        onPhotoTaken={handleCameraCapture}
+      />
     </SafeAreaView>
   );
 }

@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert, Platform, ActionSheetIOS } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, ActionSheetIOS } from 'react-native';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger } from 'iconsax-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Recipe } from '@/lib/types';
@@ -53,14 +55,22 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
           } else if (buttonIndex === (onCollectionPress ? 2 : 1) && onShare) {
             onShare(recipe);
           } else if (buttonIndex === destructiveButtonIndex && onDelete && recipe.id) {
-            Alert.alert('Delete Recipe', `Are you sure you want to delete "${recipe.title}"?`, [
-              { text: 'Cancel', style: 'cancel' },
+            showAlert(
+              'Delete Recipe',
+              `Are you sure you want to delete "${recipe.title}"?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => onDelete(recipe.id!),
+                },
+              ],
               {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => onDelete(recipe.id!),
+                icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                type: 'destructive',
               },
-            ]);
+            );
           }
         },
       );
@@ -80,14 +90,22 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         buttons.push({
           text: 'Delete Recipe',
           onPress: () => {
-            Alert.alert('Delete Recipe', `Are you sure you want to delete "${recipe.title}"?`, [
-              { text: 'Cancel', style: 'cancel' },
+            showAlert(
+              'Delete Recipe',
+              `Are you sure you want to delete "${recipe.title}"?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => onDelete(recipe.id!),
+                },
+              ],
               {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => onDelete(recipe.id!),
+                icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                type: 'destructive',
               },
-            ]);
+            );
           },
           style: 'destructive',
         });
@@ -95,7 +113,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
       buttons.push({ text: 'Cancel', style: 'cancel' });
 
-      Alert.alert('Recipe Actions', `What would you like to do with "${recipe.title}"?`, buttons);
+      showAlert('Recipe Actions', `What would you like to do with "${recipe.title}"?`, buttons);
     }
   };
 

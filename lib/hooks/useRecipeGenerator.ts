@@ -1,10 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Recipe } from '@/lib/types';
 import { RecipeService } from '@/lib/services/recipeService';
 import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
 import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 import * as Haptics from 'expo-haptics';
-import { Alert } from 'react-native';
 
 interface UseRecipeGeneratorProps {
   preferences?: any;
@@ -29,12 +28,6 @@ export const useRecipeGenerator = ({
 
   const removeFile = (urlStr: string) => {
     setUploadedFiles((prev) => prev.filter((u) => u !== urlStr));
-  };
-
-  const reset = () => {
-    setVideoUrl('');
-    setUploadedFiles([]);
-    setCurrentRecipe(null);
   };
 
   const handleUploadMultiple = async (assets: any[]) => {
@@ -77,17 +70,49 @@ export const useRecipeGenerator = ({
     }
   };
 
+  // Alert State for Custom Modal
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    confirmText: 'OK',
+    cancelText: 'Cancel',
+    showCancel: false,
+    onConfirm: () => {},
+    type: 'default' as 'default' | 'destructive',
+  });
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
   const generate = async () => {
+    /**
+     * ERROR HANDLING PRIORITY (Sorted by Importance):
+     * 1. 🚨 Quota/Monetization (Blocker) - Check user limit immediately.
+     * 2. ⚠️ Input Validation (Preventive) - Check for valid URLs and supported platforms.
+     * 3. 💥 Backend Processing (Critical) - Handle AI/Server connection errors gracefully.
+     * 4. 📸 Media Upload (Technical) - Handle file size/duration constraints.
+     * 5. 🖼️ Image Generation (Enhancement) - Silent fail allows recipe to succeed even if image fails.
+     * 6. 🔒 Permissions (System) - Handled in the UI layer (generate.tsx).
+     */
+
     // 1. Check Quota
     if (!checkCanGenerate()) {
-      Alert.alert(
-        'Daily Limit Reached 🍳',
-        'You have used your 3 free recipes for today. Upgrade to Pro for unlimited access!',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade to Pro', onPress: onPaywallRequest },
-        ],
-      );
+      setAlertConfig({
+        visible: true,
+        title: 'Daily Limit Reached 🍳',
+        message:
+          'You have used your 3 free recipes for today. Upgrade to Pro for unlimited access!',
+        confirmText: 'Upgrade to Pro',
+        cancelText: 'Cancel',
+        showCancel: true,
+        onConfirm: async () => {
+          hideAlert();
+          await onPaywallRequest();
+        },
+        type: 'default',
+      });
       return;
     }
 
@@ -114,10 +139,17 @@ export const useRecipeGenerator = ({
       const isDirectVideo = targetUrl.match(/\.(mp4|mov|webm)$/i);
 
       if (!isShortForm && !isDirectVideo) {
-        Alert.alert(
-          'Video Format Not Supported',
-          'Please use YouTube Shorts, TikTok, or Instagram Reels URLs for best results. Long videos are not supported.',
-        );
+        setAlertConfig({
+          visible: true,
+          title: 'Video Format Not Supported',
+          message:
+            'Please use YouTube Shorts, TikTok, or Instagram Reels URLs for best results. Long videos are not supported.',
+          confirmText: 'OK',
+          cancelText: 'Cancel',
+          showCancel: false,
+          onConfirm: hideAlert,
+          type: 'default',
+        });
         return;
       }
     }
@@ -208,15 +240,61 @@ export const useRecipeGenerator = ({
     } catch (error: any) {
       console.error('Error flow:', error);
       let friendlyMsg = 'Processing failed. Please try again.';
+      let isNonFoodError = false;
+
+      // Priority 3: Robust Error Parsing
       try {
-        const parsed = JSON.parse(error.message);
-        if (parsed.error) friendlyMsg = parsed.error;
-        if (parsed.message) friendlyMsg = parsed.message;
-      } catch (e) {
-        friendlyMsg = error.message || friendlyMsg;
+        // 1. Handle Network/Connection Errors explicitly
+        if (
+          error.message?.includes('Network request failed') ||
+          error.message?.includes('timeout')
+        ) {
+          friendlyMsg = 'Connection issue. Please check your internet.';
+        }
+        // 2. Parsed JSON from Backend (Supabase Edge Functions often throw JSON strings)
+        else {
+          const parsed = JSON.parse(error.message);
+          if (parsed.error) friendlyMsg = parsed.error;
+          if (parsed.message) friendlyMsg = parsed.message;
+
+          // Check if it's a non-food content error
+          if (
+            parsed.error === 'No food content detected' ||
+            parsed.error === 'No food items detected'
+          ) {
+            isNonFoodError = true;
+          }
+        }
+      } catch {
+        // Fallback to raw message if not JSON, but clean it up
+        if (error.message && !error.message.includes('JSON')) {
+          friendlyMsg = error.message;
+          // Check raw message too
+          if (friendlyMsg.toLowerCase().includes('no food')) {
+            isNonFoodError = true;
+          }
+        }
       }
-      if (friendlyMsg.length > 60) friendlyMsg = friendlyMsg.substring(0, 57) + '...';
-      toastRef.current?.show(friendlyMsg, 'error');
+
+      // Show Alert Modal for non-food content (more prominent than toast)
+      if (isNonFoodError) {
+        setAlertConfig({
+          visible: true,
+          title: '🍽️ No Food Detected',
+          message:
+            friendlyMsg ||
+            'The image/video you uploaded does not appear to contain food or cooking content. Please upload a food-related image or video.',
+          confirmText: 'Try Again',
+          cancelText: '',
+          showCancel: false,
+          onConfirm: hideAlert,
+          type: 'default',
+        });
+      } else {
+        // Truncate if too long (UX Best Practice)
+        if (friendlyMsg.length > 80) friendlyMsg = friendlyMsg.substring(0, 77) + '...';
+        toastRef.current?.show(friendlyMsg, 'error');
+      }
     } finally {
       clearInterval(interval);
       setLoading(false);
@@ -230,10 +308,19 @@ export const useRecipeGenerator = ({
   const completeRecipe = async (recipe: Recipe) => {
     // 1. Check Quota
     if (!checkCanGenerate()) {
-      Alert.alert('Daily Limit Reached 🍳', 'Upgrade to Pro to generate full recipes!', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Upgrade to Pro', onPress: onPaywallRequest },
-      ]);
+      setAlertConfig({
+        visible: true,
+        title: 'Daily Limit Reached 🍳',
+        message: 'Upgrade to Pro to generate full recipes!',
+        confirmText: 'Upgrade to Pro',
+        cancelText: 'Cancel',
+        showCancel: true,
+        onConfirm: async () => {
+          hideAlert();
+          await onPaywallRequest();
+        },
+        type: 'default',
+      });
       return { success: false };
     }
 
@@ -290,6 +377,32 @@ export const useRecipeGenerator = ({
     }
   };
 
+  const showAlert = (
+    title: string,
+    message: string,
+    options?: {
+      confirmText?: string;
+      cancelText?: string;
+      showCancel?: boolean;
+      onConfirm?: () => void;
+      type?: 'default' | 'destructive';
+    },
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      confirmText: options?.confirmText || 'OK',
+      cancelText: options?.cancelText || 'Cancel',
+      showCancel: options?.showCancel ?? false,
+      onConfirm: () => {
+        hideAlert();
+        options?.onConfirm?.();
+      },
+      type: options?.type || 'default',
+    });
+  };
+
   return {
     videoUrl,
     setVideoUrl,
@@ -305,5 +418,8 @@ export const useRecipeGenerator = ({
     generate,
     completeRecipe,
     isPro,
+    alertConfig, // Expose alert config
+    hideAlert, // Expose hide function
+    showAlert, // Expose generic show function
   };
 };
