@@ -326,21 +326,29 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
           <View className="mb-4 flex-row items-center justify-between">
             {isEditing ? (
               <>
-                <Text className="flex-1 font-visby-bold text-2xl text-gray-900 dark:text-white">
-                  {tempRecipe?.id ? 'Edit Recipe' : 'New Recipe'}
-                </Text>
-                <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    onPress={handleSaveEdit}
-                    className="rounded-full bg-primary p-2"
-                  >
-                    <Ionicons name="checkmark" size={24} color="white" />
-                  </TouchableOpacity>
+                <View className="flex-1">
+                  <Text className="font-visby-bold text-2xl text-gray-900 dark:text-white">
+                    {tempRecipe?.id ? 'Edit Recipe' : 'New Recipe'}
+                  </Text>
+                  <Text className="font-visby text-xs text-gray-500 dark:text-gray-400">
+                    {tempRecipe?.id ? 'Make your changes below' : 'Create something delicious'}
+                  </Text>
+                </View>
+                <View className="flex-row gap-3">
                   <TouchableOpacity
                     onPress={handleCancelEdit}
-                    className="rounded-full bg-red-100 p-2"
+                    className="rounded-full border-2 border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
                   >
-                    <Ionicons name="close" size={24} color="red" />
+                    <Text className="font-visby-bold text-sm text-gray-700 dark:text-gray-300">
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleSaveEdit}
+                    className="flex-row items-center gap-2 rounded-full bg-[#8BD65E] px-5 py-2 shadow-lg shadow-green-200"
+                  >
+                    <Ionicons name="checkmark-circle" size={18} color="white" />
+                    <Text className="font-visby-bold text-sm text-white">Save</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -497,54 +505,57 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
               {/* EDITABLE TITLE */}
               {isEditing && (
-                <View className="mb-2 mt-2">
-                  <TextInput
-                    value={tempRecipe?.title}
-                    onChangeText={(txt) =>
-                      setTempRecipe((prev) => (prev ? { ...prev, title: txt } : null))
-                    }
-                    className="font-visby-bold text-3xl text-gray-900 dark:text-white"
-                    placeholder="Name your dish..."
-                    placeholderTextColor="#9CA3AF"
-                    multiline
-                  />
-                  <View className="mt-2 h-[1px] w-12 bg-[#8BD65E]" />
+                <View className="mb-4">
+                  <View className="rounded-2xl border-2 border-[#8BD65E]/20 bg-[#8BD65E]/5 p-4">
+                    <Text className="mb-2 font-visby-bold text-xs uppercase tracking-wider text-[#8BD65E]">
+                      Recipe Name
+                    </Text>
+                    <TextInput
+                      value={tempRecipe?.title}
+                      onChangeText={(txt) =>
+                        setTempRecipe((prev) => (prev ? { ...prev, title: txt } : null))
+                      }
+                      className="font-visby-bold text-2xl text-gray-900 dark:text-white"
+                      placeholder="e.g. Creamy Carbonara Pasta"
+                      placeholderTextColor="#9CA3AF"
+                      multiline
+                    />
+                  </View>
                 </View>
               )}
 
               {/* DESCRIPTION */}
               {isEditing ? (
                 <View className="mb-6">
-                  <TextInput
-                    value={tempRecipe?.description}
-                    onChangeText={(txt) =>
-                      setTempRecipe((prev) => (prev ? { ...prev, description: txt } : null))
-                    }
-                    multiline
-                    className="min-h-[60px] font-visby text-base text-gray-600 dark:text-gray-300"
-                    textAlignVertical="top"
-                    placeholder="Describe the taste, texture, or story behind this recipe..."
-                    placeholderTextColor="#9CA3AF"
-                  />
+                  <View className="rounded-2xl border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <Text className="mb-2 font-visby-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Description
+                    </Text>
+                    <TextInput
+                      value={tempRecipe?.description}
+                      onChangeText={(txt) =>
+                        setTempRecipe((prev) => (prev ? { ...prev, description: txt } : null))
+                      }
+                      multiline
+                      className="min-h-[80px] font-visby text-base leading-relaxed text-gray-900 dark:text-gray-100"
+                      textAlignVertical="top"
+                      placeholder="What makes this dish special? Describe the flavors, texture, or your inspiration..."
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
 
                   {/* Quick Actions for New Recipe */}
                   {!tempRecipe?.id && (
-                    <View className="mt-4 gap-3">
-                      <Text className="font-visby-bold text-xs uppercase tracking-wider text-gray-500">
-                        Quick Actions
-                      </Text>
+                    <View className="mt-4">
+                      <View className="mb-3 flex-row items-center gap-2">
+                        <View className="h-1 w-1 rounded-full bg-[#8BD65E]" />
+                        <Text className="font-visby-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Quick Actions
+                        </Text>
+                      </View>
 
-                      <View className="flex-row gap-3">
-                        {/* Pick from Gallery */}
-                        <TouchableOpacity
-                          onPress={pickImage}
-                          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50 py-4"
-                        >
-                          <Ionicons name="images" size={20} color="#3B82F6" />
-                          <Text className="font-visby-bold text-sm text-blue-700">Add Photo</Text>
-                        </TouchableOpacity>
-
-                        {/* Generate with AI */}
+                      <View className="gap-3">
+                        {/* Generate with AI - Priority */}
                         <TouchableOpacity
                           onPress={async () => {
                             // Validate title and description
@@ -606,22 +617,42 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                             }
                           }}
                           disabled={isGenerating}
-                          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-green-100 bg-green-50 py-4"
-                          style={{ opacity: isGenerating ? 0.5 : 1 }}
+                          className="flex-row items-center justify-center gap-3 rounded-xl bg-purple-600 py-4 shadow-lg shadow-purple-200 active:scale-[0.98] dark:shadow-none"
+                          style={{ opacity: isGenerating ? 0.7 : 1 }}
                         >
                           {isGenerating ? (
-                            <ActivityIndicator size="small" color="#8BD65E" />
+                            <>
+                              <ActivityIndicator size="small" color="white" />
+                              <Text className="font-visby-bold text-base text-white">
+                                Generating...
+                              </Text>
+                            </>
                           ) : (
-                            <Ionicons name="sparkles" size={20} color="#8BD65E" />
+                            <>
+                              <View className="h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                                <Ionicons name="sparkles" size={18} color="white" />
+                              </View>
+                              <Text className="font-visby-bold text-base text-white">
+                                Generate with AI
+                              </Text>
+                            </>
                           )}
-                          <Text className="font-visby-bold text-sm text-green-700">
-                            {isGenerating ? 'Generating...' : 'AI Generate'}
+                        </TouchableOpacity>
+
+                        {/* Pick from Gallery */}
+                        <TouchableOpacity
+                          onPress={pickImage}
+                          className="flex-row items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white py-3 active:bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+                        >
+                          <Ionicons name="images-outline" size={18} color="#6B7280" />
+                          <Text className="font-visby-bold text-sm text-gray-700 dark:text-gray-300">
+                            Add Photo
                           </Text>
                         </TouchableOpacity>
                       </View>
 
-                      <Text className="text-center font-visby text-xs text-gray-400">
-                        Add a photo manually or let AI generate ingredients & steps
+                      <Text className="mt-2 text-center font-visby text-xs text-gray-400 dark:text-gray-500">
+                        Let AI create ingredients & steps, or add photo manually
                       </Text>
                     </View>
                   )}
@@ -887,50 +918,53 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
               {/* Ingredients */}
               <View className="mb-6">
-                <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="cart-outline" size={24} color={isDark ? '#FFF' : '#111827'} />
-                    <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
+                <View className="mb-4 flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-10 w-10 items-center justify-center rounded-full bg-[#8BD65E]/10">
+                      <Ionicons name="cart-outline" size={22} color="#8BD65E" />
+                    </View>
+                    <Text className="font-visby-bold text-xl text-gray-900 dark:text-white">
                       Ingredients
                     </Text>
                   </View>
                   {!isEditing && (
-                    <TouchableOpacity onPress={handleAddIngredientsToShoppingList}>
-                      <Text className="font-visby-bold text-xs text-[#8BD65E]">+ Add to List</Text>
+                    <TouchableOpacity
+                      onPress={handleAddIngredientsToShoppingList}
+                      className="rounded-full bg-[#8BD65E]/10 px-4 py-2"
+                    >
+                      <Text className="font-visby-bold text-xs text-[#8BD65E]">
+                        + Shopping List
+                      </Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {isEditing
                   ? (tempRecipe?.ingredients || []).map((item, i) => (
-                      <View key={i} className="mb-3 flex-row items-center gap-2">
-                        <TextInput
-                          value={String(item.quantity)}
-                          onChangeText={(txt) => {
-                            setTempRecipe((prev) => {
-                              if (!prev) return null;
-                              const newIng = [...(prev.ingredients || [])];
-                              newIng[i] = { ...newIng[i], quantity: txt };
-                              return { ...prev, ingredients: newIng };
-                            });
-                          }}
-                          placeholder="Qty"
-                          className="w-16 rounded border border-gray-200 bg-gray-50 p-2 text-center text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                          keyboardType="numeric"
-                        />
-                        <TextInput
-                          value={item.unit}
-                          onChangeText={(txt) => {
-                            setTempRecipe((prev) => {
-                              if (!prev) return null;
-                              const newIng = [...(prev.ingredients || [])];
-                              newIng[i] = { ...newIng[i], unit: txt };
-                              return { ...prev, ingredients: newIng };
-                            });
-                          }}
-                          placeholder="Unit"
-                          className="w-16 rounded border border-gray-200 bg-gray-50 p-2 text-center text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
+                      <View
+                        key={i}
+                        className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
+                      >
+                        <View className="mb-2 flex-row items-center justify-between">
+                          <Text className="font-visby-bold text-xs text-gray-400">
+                            Item {i + 1}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setTempRecipe((prev) => {
+                                if (!prev) return null;
+                                const newIng = (prev.ingredients || []).filter(
+                                  (_, idx) => idx !== i,
+                                );
+                                return { ...prev, ingredients: newIng };
+                              });
+                            }}
+                            className="rounded-full bg-red-50 p-1 dark:bg-red-900/20"
+                          >
+                            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                          </TouchableOpacity>
+                        </View>
                         <TextInput
                           value={item.item}
                           onChangeText={(txt) => {
@@ -941,20 +975,47 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                               return { ...prev, ingredients: newIng };
                             });
                           }}
-                          placeholder="Ingredient name"
-                          className="mr-2 flex-1 rounded border border-gray-200 bg-gray-50 p-2 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          placeholder="e.g. Fresh Basil Leaves"
+                          placeholderTextColor="#9CA3AF"
+                          className="mb-3 font-visby text-base text-gray-900 dark:text-white"
                         />
-                        <TouchableOpacity
-                          onPress={() => {
-                            setTempRecipe((prev) => {
-                              if (!prev) return null;
-                              const newIng = (prev.ingredients || []).filter((_, idx) => idx !== i);
-                              return { ...prev, ingredients: newIng };
-                            });
-                          }}
-                        >
-                          <Ionicons name="remove-circle" size={20} color="red" />
-                        </TouchableOpacity>
+                        <View className="flex-row gap-2">
+                          <View className="flex-1">
+                            <Text className="mb-1 font-visby text-xs text-gray-500">Quantity</Text>
+                            <TextInput
+                              value={String(item.quantity)}
+                              onChangeText={(txt) => {
+                                setTempRecipe((prev) => {
+                                  if (!prev) return null;
+                                  const newIng = [...(prev.ingredients || [])];
+                                  newIng[i] = { ...newIng[i], quantity: txt };
+                                  return { ...prev, ingredients: newIng };
+                                });
+                              }}
+                              placeholder="200"
+                              placeholderTextColor="#9CA3AF"
+                              className="font-visby-semibold rounded-lg bg-gray-50 px-3 py-2 text-center text-gray-900 dark:bg-gray-700 dark:text-white"
+                              keyboardType="numeric"
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="mb-1 font-visby text-xs text-gray-500">Unit</Text>
+                            <TextInput
+                              value={item.unit}
+                              onChangeText={(txt) => {
+                                setTempRecipe((prev) => {
+                                  if (!prev) return null;
+                                  const newIng = [...(prev.ingredients || [])];
+                                  newIng[i] = { ...newIng[i], unit: txt };
+                                  return { ...prev, ingredients: newIng };
+                                });
+                              }}
+                              placeholder="g"
+                              placeholderTextColor="#9CA3AF"
+                              className="font-visby-semibold rounded-lg bg-gray-50 px-3 py-2 text-center text-gray-900 dark:bg-gray-700 dark:text-white"
+                            />
+                          </View>
+                        </View>
                       </View>
                     ))
                   : (displayRecipe.ingredients || []).map((item, i) => (
@@ -972,6 +1033,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                 {isEditing && (
                   <TouchableOpacity
                     onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setTempRecipe((prev) =>
                         prev
                           ? {
@@ -984,11 +1046,13 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           : null,
                       );
                     }}
-                    className="mt-3 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 py-3 active:bg-gray-100"
+                    className="mt-2 flex-row items-center justify-center rounded-xl border-2 border-[#8BD65E] bg-[#8BD65E]/5 py-4 active:bg-[#8BD65E]/10"
                   >
-                    <Ionicons name="add" size={20} color="#6B7280" />
-                    <Text className="ml-2 font-visby-bold text-sm text-gray-600">
-                      Add Ingredient
+                    <View className="mr-2 h-6 w-6 items-center justify-center rounded-full bg-[#8BD65E]">
+                      <Ionicons name="add" size={16} color="white" />
+                    </View>
+                    <Text className="font-visby-bold text-sm text-[#8BD65E]">
+                      Add Another Ingredient
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1034,24 +1098,47 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
               {/* Steps */}
               <View className="mb-8">
-                <View className="mb-3 flex-row items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-800">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons
-                      name="restaurant-outline"
-                      size={24}
-                      color={isDark ? '#FFF' : '#111827'}
-                    />
-                    <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
-                      Instructions
-                    </Text>
+                <View className="mb-4 flex-row items-center gap-3">
+                  <View className="h-10 w-10 items-center justify-center rounded-full bg-orange-500/10">
+                    <Ionicons name="restaurant-outline" size={22} color="#F97316" />
                   </View>
+                  <Text className="font-visby-bold text-xl text-gray-900 dark:text-white">
+                    Cooking Instructions
+                  </Text>
                 </View>
 
                 {isEditing
                   ? (tempRecipe?.steps || []).map((step, i) => (
-                      <View key={i} className="mb-4 flex-row items-start">
-                        <View className="mr-2 mt-2 h-6 w-6 items-center justify-center rounded-full bg-blue-100">
-                          <Text className="font-visby-bold text-xs text-blue-600">{i + 1}</Text>
+                      <View
+                        key={i}
+                        className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+                      >
+                        <View className="mb-3 flex-row items-center justify-between">
+                          <View className="flex-row items-center gap-2">
+                            <View className="h-7 w-7 items-center justify-center rounded-full bg-orange-500">
+                              <Text className="font-visby-bold text-sm text-white">{i + 1}</Text>
+                            </View>
+                            <Text className="font-visby-bold text-xs text-gray-400">
+                              Step {i + 1}
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setTempRecipe((prev) => {
+                                if (!prev) return null;
+                                const newSteps = (prev.steps || []).filter((_, idx) => idx !== i);
+                                const reindexed = newSteps.map((s, idx) => ({
+                                  ...s,
+                                  step: String(idx + 1),
+                                }));
+                                return { ...prev, steps: reindexed };
+                              });
+                            }}
+                            className="rounded-full bg-red-50 p-1 dark:bg-red-900/20"
+                          >
+                            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                          </TouchableOpacity>
                         </View>
                         <TextInput
                           value={step.instruction}
@@ -1064,25 +1151,11 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                               return { ...prev, steps: newSteps };
                             });
                           }}
-                          className="min-h-[60px] flex-1 rounded border border-gray-200 bg-gray-50 p-2 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          placeholder="e.g. Heat olive oil in a large pan over medium heat..."
+                          placeholderTextColor="#9CA3AF"
+                          className="min-h-[80px] font-visby text-base leading-relaxed text-gray-900 dark:text-white"
                           textAlignVertical="top"
                         />
-                        <TouchableOpacity
-                          onPress={() => {
-                            setTempRecipe((prev) => {
-                              if (!prev) return null;
-                              const newSteps = (prev.steps || []).filter((_, idx) => idx !== i);
-                              const reindexed = newSteps.map((s, idx) => ({
-                                ...s,
-                                step: String(idx + 1),
-                              }));
-                              return { ...prev, steps: reindexed };
-                            });
-                          }}
-                          className="ml-2 mt-2"
-                        >
-                          <Ionicons name="remove-circle" size={20} color="red" />
-                        </TouchableOpacity>
                       </View>
                     ))
                   : (displayRecipe.steps || []).map((step, i) => (
@@ -1101,6 +1174,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                 {isEditing && (
                   <TouchableOpacity
                     onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       const nextStep = (tempRecipe?.steps?.length || 0) + 1;
                       setTempRecipe((prev) =>
                         prev
@@ -1117,27 +1191,34 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           : null,
                       );
                     }}
-                    className="mt-3 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 py-3 active:bg-gray-100"
+                    className="mt-2 flex-row items-center justify-center rounded-xl border-2 border-orange-500 bg-orange-500/5 py-4 active:bg-orange-500/10"
                   >
-                    <Ionicons name="add" size={20} color="#6B7280" />
-                    <Text className="ml-2 font-visby-bold text-sm text-gray-600">
-                      Add Instruction Step
-                    </Text>
+                    <View className="mr-2 h-6 w-6 items-center justify-center rounded-full bg-orange-500">
+                      <Ionicons name="add" size={16} color="white" />
+                    </View>
+                    <Text className="font-visby-bold text-sm text-orange-500">Add Next Step</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {/* Tips: Redesigned for Premium Feel */}
               {(isEditing || (displayRecipe.tips && displayRecipe.tips.length > 0)) && (
-                <View className="mb-8 overflow-hidden rounded-2xl bg-gray-50 dark:bg-gray-800">
-                  <View className="flex-row items-center gap-3 border-l-4 border-yellow-500 bg-yellow-500/10 px-4 py-3 dark:bg-yellow-500/20">
-                    <Ionicons name="star" size={18} color="#EAB308" />
-                    <Text className="font-visby-bold text-base text-gray-900 dark:text-white">
-                      Chef&apos;s Secret
+                <View className="mb-8 overflow-hidden rounded-2xl border border-yellow-200 bg-gradient-to-br from-yellow-50 to-amber-50 dark:border-yellow-900/30 dark:from-yellow-900/10 dark:to-amber-900/10">
+                  <View className="flex-row items-center gap-3 border-b border-yellow-200 bg-yellow-500/10 px-4 py-3 dark:border-yellow-900/30 dark:bg-yellow-500/5">
+                    <View className="h-8 w-8 items-center justify-center rounded-full bg-yellow-500/20">
+                      <Ionicons name="bulb" size={18} color="#EAB308" />
+                    </View>
+                    <Text className="flex-1 font-visby-bold text-base text-gray-900 dark:text-white">
+                      Chef&apos;s Pro Tips
                     </Text>
+                    {isEditing && (
+                      <Text className="font-visby text-xs text-yellow-600 dark:text-yellow-500">
+                        Optional
+                      </Text>
+                    )}
                   </View>
 
-                  <View className="p-4 pt-3">
+                  <View className="p-4">
                     {isEditing ? (
                       <TextInput
                         value={tempRecipe?.tips}
@@ -1145,14 +1226,18 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           setTempRecipe((prev) => (prev ? { ...prev, tips: txt } : null))
                         }
                         multiline
-                        placeholder="Add a pro tip for this recipe..."
-                        placeholderTextColor="#9CA3AF"
-                        className="min-h-[60px] font-visby text-base leading-relaxed text-gray-600 dark:text-gray-300"
+                        placeholder="Share your secret technique, ingredient substitution, or serving suggestion..."
+                        placeholderTextColor="#D97706"
+                        className="min-h-[80px] font-visby text-base leading-relaxed text-gray-900 dark:text-gray-100"
+                        textAlignVertical="top"
                       />
                     ) : (
-                      <Text className="font-visby-italic text-base leading-relaxed text-gray-600 dark:text-gray-300">
-                        &quot;{displayRecipe.tips}&quot;
-                      </Text>
+                      <View className="flex-row gap-2">
+                        <Text className="font-visby text-2xl">💡</Text>
+                        <Text className="flex-1 font-visby text-base leading-relaxed text-gray-700 dark:text-gray-300">
+                          {displayRecipe.tips}
+                        </Text>
+                      </View>
                     )}
                   </View>
                 </View>

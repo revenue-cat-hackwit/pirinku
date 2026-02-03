@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import { useShoppingListStore } from '@/lib/store/shoppingListStore';
 import { PantryService, PantryItem } from '@/lib/services/pantryService';
 import * as Haptics from 'expo-haptics';
 import { CustomAlertModal } from '@/components/CustomAlertModal';
+import Toast, { ToastRef } from '@/components/Toast';
 import { TickCircle, Danger, Trash, ShoppingCart, MagicStar } from 'iconsax-react-native';
 import Animated, { ZoomIn, ZoomOut, Easing } from 'react-native-reanimated';
 
@@ -78,8 +79,11 @@ function MealPlannerContent() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [initialModalMode, setInitialModalMode] = useState<'view' | 'edit'>('view');
 
+  // Toast ref for error handling
+  const toastRef = useRef<ToastRef>(null);
+
   // Recipe Generator for completing placeholder recipes
-  const { completeRecipe } = useRecipeGenerator();
+  const { completeRecipe } = useRecipeGenerator({ toastRef });
 
   // Track image generation per recipe ID
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
@@ -195,13 +199,31 @@ function MealPlannerContent() {
     }
   };
 
-  const handleDeleteMeal = async (id: string) => {
-    try {
-      await MealPlannerService.deleteMealPlan(id);
-      loadData(true);
-    } catch (e) {
-      console.error(e);
-    }
+  const handleDeleteMeal = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    showAlert({
+      title: 'Remove Meal?',
+      message: 'Are you sure you want to remove this meal from your plan?',
+      type: 'destructive',
+      icon: <Trash size={32} color="#EF4444" variant="Bold" />,
+      showCancel: true,
+      confirmText: 'Remove',
+      onConfirm: async () => {
+        try {
+          await MealPlannerService.deleteMealPlan(id);
+          loadData(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (e: any) {
+          showAlert({
+            title: 'Error',
+            message: 'Failed to remove meal',
+            type: 'destructive',
+            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          });
+        }
+      },
+    });
   };
 
   // completeRecipe is already destuctured from useRecipeGenerator at the top of the component
@@ -1138,6 +1160,9 @@ function MealPlannerContent() {
           onClose={closeAlert}
           onConfirm={alertConfig.onConfirm || closeAlert}
         />
+
+        {/* Toast for error/success notifications */}
+        <Toast ref={toastRef} />
       </SafeAreaView>
     </>
   );

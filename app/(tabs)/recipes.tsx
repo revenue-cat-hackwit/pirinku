@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import { useColorScheme } from 'nativewind';
 // Components
 import { RecipeCard } from '@/components/recipes/RecipeCard';
 import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
+import Toast, { ToastRef } from '@/components/Toast';
 import { CollectionCard } from '@/components/recipes/CollectionCard';
 import { CollectionSelectorModal } from '@/components/recipes/CollectionSelectorModal';
 import { CreateCollectionModal } from '@/components/recipes/CreateCollectionModal';
@@ -55,8 +56,11 @@ export default function SavedRecipesScreen() {
     updateRecipe,
   } = useRecipeStorage();
 
+  // Toast ref for error handling
+  const toastRef = useRef<ToastRef>(null);
+
   // Use generator hook for completing recipes
-  const { completeRecipe } = useRecipeGenerator();
+  const { completeRecipe } = useRecipeGenerator({ toastRef });
 
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -725,6 +729,9 @@ export default function SavedRecipesScreen() {
         type="destructive"
         icon="trash-outline"
       />
+
+      {/* Toast for error/success notifications */}
+      <Toast ref={toastRef} />
     </SafeAreaView>
   );
 }

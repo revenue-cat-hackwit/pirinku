@@ -127,6 +127,7 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
                 <TouchableOpacity
                   onPress={() => {
                     onConfirm();
+                    onClose();
                   }}
                   className={`flex-1 items-center justify-center rounded-xl py-3.5 ${
                     type === 'destructive' ? 'bg-[#EF4444]' : 'bg-[#8BD65E]'
