@@ -27,6 +27,7 @@ import { PantryService, PantryItem } from '@/lib/services/pantryService';
 import * as Haptics from 'expo-haptics';
 import { CustomAlertModal } from '@/components/CustomAlertModal';
 import Toast, { ToastRef } from '@/components/Toast';
+import { ChefLoading } from '@/components/ChefLoading';
 import { TickCircle, Danger, Trash, ShoppingCart, MagicStar } from 'iconsax-react-native';
 import Animated, { ZoomIn, ZoomOut, Easing } from 'react-native-reanimated';
 
@@ -83,7 +84,16 @@ function MealPlannerContent() {
   const toastRef = useRef<ToastRef>(null);
 
   // Recipe Generator for completing placeholder recipes
-  const { completeRecipe } = useRecipeGenerator({ toastRef });
+  const {
+    completeRecipe,
+    loading: generatorLoading,
+    loadingMessage,
+  } = useRecipeGenerator({
+    toastRef,
+  });
+
+  console.log('🍳🍳🍳 completeRecipe exists:', !!completeRecipe);
+  console.log('🍳🍳🍳 completeRecipe type:', typeof completeRecipe);
 
   // Track image generation per recipe ID
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
@@ -116,12 +126,15 @@ function MealPlannerContent() {
     type?: 'default' | 'destructive';
     icon?: any;
     confirmText?: string;
+    cancelText?: string;
     showCancel?: boolean;
     onConfirm?: () => void;
+    onCancel?: () => void;
   }) => {
     setAlertConfig({
       visible: true,
       confirmText: 'OK',
+      cancelText: 'Cancel',
       showCancel: false,
       ...config,
     });
@@ -408,18 +421,76 @@ function MealPlannerContent() {
     }
   };
 
-  const handleGenerateFull = async (recipe: Recipe) => {
-    const result = await completeRecipe(recipe);
-    if (result && result.success && result.data) {
-      setSelectedRecipe(result.data);
-      loadData(true); // Refresh to show completed recipe in meal plan
-      showAlert({
-        title: 'Recipe Completed',
-        message: 'Your recipe details are ready! 👨‍🍳',
-        icon: <MagicStar size={32} color="#8BD65E" variant="Bold" />,
-      });
-    }
-  };
+  const handleGenerateFull = useCallback(
+    async (recipe: Recipe) => {
+      console.log('🍳🍳🍳 ===== handleGenerateFull START =====');
+      console.log('🍳 handleGenerateFull called in meal-planner with recipe:', recipe.id);
+      console.log('🍳 completeRecipe available:', !!completeRecipe);
+      try {
+        console.log('🍳 Calling completeRecipe...');
+        const result = await completeRecipe(recipe);
+        console.log('🍳 completeRecipe result:', result);
+
+        // Check if quota exceeded
+        if (result && !result.success && result.needsPaywall) {
+          console.log('🍳 Quota exceeded - showing paywall alert');
+          showAlert({
+            title: 'Daily Limit Reached 🍳',
+            message:
+              'You have used your 3 free recipes for today. Upgrade to Pro for unlimited access!',
+            confirmText: 'Upgrade to Pro',
+            cancelText: 'Cancel',
+            showCancel: true,
+            type: 'default',
+            onConfirm: async () => {
+              const RevenueCatUI = require('react-native-purchases-ui').default;
+              const paywallResult = await RevenueCatUI.presentPaywall();
+              console.log('Paywall result:', paywallResult);
+            },
+          });
+          return;
+        }
+
+        if (result && result.success && result.data) {
+          console.log('🍳 Setting selectedRecipe with new data:', result.data);
+
+          // Close and reopen modal with new data to force refresh
+          setSelectedRecipe(null);
+          setTimeout(() => {
+            setSelectedRecipe(result.data);
+          }, 100);
+
+          loadData(true); // Refresh to show completed recipe in meal plan
+          showAlert({
+            title: 'Recipe Completed',
+            message: 'Your recipe details are ready! 👨‍🍳',
+            icon: <MagicStar size={32} color="#8BD65E" variant="Bold" />,
+          });
+        } else {
+          console.log('🍳 completeRecipe failed or returned no data');
+          console.log('🍳 Error from result:', result?.error);
+
+          // Show error to user
+          showAlert({
+            title: 'Generation Failed',
+            message: result?.error || 'Could not generate recipe details. Please try again.',
+            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+            type: 'destructive',
+          });
+        }
+      } catch (error: any) {
+        console.error('🍳 Error in handleGenerateFull:', error);
+        showAlert({
+          title: 'Error',
+          message: error?.message || 'Failed to generate recipe',
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        });
+      }
+      console.log('🍳🍳🍳 ===== handleGenerateFull END =====');
+    },
+    [completeRecipe, loadData, showAlert],
+  );
 
   // Auto-generate image for recipe if missing
   const handleGenerateImage = async (recipe: Recipe) => {
@@ -781,6 +852,9 @@ function MealPlannerContent() {
 
   return (
     <>
+      {/* Loading Overlay */}
+      {generatorLoading && <ChefLoading status={loadingMessage} />}
+
       <RecipeDetailModal
         recipe={selectedRecipe}
         visible={!!selectedRecipe}
@@ -788,7 +862,10 @@ function MealPlannerContent() {
         onUpdate={handleUpdateRecipe}
         onDelete={handleDeleteRecipe}
         onShare={handleShareRecipe}
-        onGenerateFull={handleGenerateFull}
+        onGenerateFull={(recipe) => {
+          console.log('🍳🍳🍳 WRAPPER onGenerateFull called with recipe:', recipe.id);
+          return handleGenerateFull(recipe);
+        }}
         initialMode={initialModalMode}
       />
 

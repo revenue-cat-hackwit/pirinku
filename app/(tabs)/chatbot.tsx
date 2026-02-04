@@ -8,6 +8,7 @@ import {
   Platform,
   Keyboard,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
 import { Danger, TickCircle, MagicStar, Trash } from 'iconsax-react-native';
@@ -23,6 +24,7 @@ import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 import RevenueCatUI from 'react-native-purchases-ui';
 import * as Haptics from 'expo-haptics';
 import { ChatHistoryDrawer } from '@/components/chat/ChatHistoryDrawer';
+import { useRouter } from 'expo-router';
 
 const dummyMessages: Message[] = [
   {
@@ -94,6 +96,7 @@ const ThinkingIndicator = () => {
 };
 
 export default function Chatbot() {
+  const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
@@ -109,6 +112,19 @@ export default function Chatbot() {
 
   // Subscription Hooks
   const { checkCanGenerate, incrementUsage, initialize } = useSubscriptionStore();
+
+  // Keyboard listener to scroll to bottom when keyboard shows
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     // Initial load: Try to get sessions first, if any, load the latest one.
@@ -501,44 +517,6 @@ export default function Chatbot() {
     setTimeout(() => sendMessage(), 100);
   };
 
-  // Keyboard animation for floating input
-  const keyboardHeight = useRef(new Animated.Value(0)).current;
-
-  useLayoutEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSubscription = Keyboard.addListener(showEvent, (e) => {
-      Animated.spring(keyboardHeight, {
-        toValue: e.endCoordinates.height,
-        useNativeDriver: false,
-        friction: 12,
-        tension: 140,
-      }).start();
-
-      // Scroll to bottom when keyboard shows to reveal latest messages
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    });
-
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      Animated.spring(keyboardHeight, {
-        toValue: 0,
-        useNativeDriver: false,
-        friction: 12,
-        tension: 140,
-      }).start();
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  // Mock chat sessions removed - fetch from DB
-
   return (
     <>
       <ChatHistoryDrawer
@@ -592,40 +570,13 @@ export default function Chatbot() {
             icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
           });
         }}
-        onClearAll={() => {
-          showAlert(
-            'Clear History',
-            'Are you sure you want to delete all chat history? This cannot be undone.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                  try {
-                    await AIService.clearHistory();
-                    setMessages([]);
-                    setChatSessions([]);
-                    setHistoryDrawerVisible(false);
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  } catch (e) {
-                    showAlert('Error', 'Failed to clear history', undefined, {
-                      icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-                      type: 'destructive',
-                    });
-                  }
-                },
-              },
-            ],
-            {
-              icon: <Trash size={32} color="#EF4444" variant="Bold" />,
-              type: 'destructive',
-            },
-          );
-        }}
       />
 
-      <View className="flex-1">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
         <View className="flex-1">
           {/* Header with Hamburger Menu */}
           <View className="flex-row items-center justify-between bg-white px-4 pb-3 pt-12 shadow-sm">
@@ -651,9 +602,10 @@ export default function Chatbot() {
                   await initialize();
                 }
               }}
-              className="rounded-full bg-purple-50 px-3 py-1.5"
+              className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2 shadow-sm"
             >
-              <Text className="font-visby-bold text-xs text-purple-600">Upgrade</Text>
+              <Ionicons name="diamond" size={16} color="white" />
+              <Text className="font-visby-bold text-sm text-white">Pro</Text>
             </TouchableOpacity>
           </View>
 
@@ -670,7 +622,7 @@ export default function Chatbot() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={{
               padding: 16,
-              paddingBottom: 400, // Extra padding to ensure bubbles visible above keyboard
+              paddingBottom: 100,
               backgroundColor: '#ffffff',
               flexGrow: 1,
             }}
@@ -691,16 +643,13 @@ export default function Chatbot() {
               // Auto scroll to bottom when new message
               flatListRef.current?.scrollToEnd({ animated: true });
             }}
-            // Dynamically adjust content inset when keyboard appears
-            contentInset={{ bottom: keyboardHeight }}
-            contentInsetAdjustmentBehavior="automatic"
           />
 
-          {/* Floating Input Box with Transparent Background */}
-          <Animated.View
+          {/* Floating Input Box at bottom of container */}
+          <View
             style={{
               position: 'absolute',
-              bottom: keyboardHeight,
+              bottom: 0,
               left: 0,
               right: 0,
               backgroundColor: 'transparent',
@@ -713,9 +662,9 @@ export default function Chatbot() {
               onPickImage={pickImage}
               loading={loading}
             />
-          </Animated.View>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </>
   );
 }

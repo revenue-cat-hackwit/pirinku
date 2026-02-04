@@ -125,17 +125,39 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   };
 
   const handleGenerateClick = async () => {
-    if (onGenerateFull && recipe) {
-      setIsGenerating(true);
-      try {
-        await onGenerateFull(recipe);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch (e) {
-        console.error(e);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } finally {
-        setIsGenerating(false);
-      }
+    console.log('🔍 Generate Full clicked');
+    console.log('🔍 onGenerateFull exists:', !!onGenerateFull);
+    console.log('🔍 onGenerateFull type:', typeof onGenerateFull);
+    console.log('🔍 recipe exists:', !!recipe);
+    console.log('🔍 recipe data:', recipe);
+
+    if (!onGenerateFull) {
+      console.error('🔍 onGenerateFull is undefined!');
+      return;
+    }
+
+    if (!recipe) {
+      console.error('🔍 recipe is undefined!');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      console.log('🔍 About to call onGenerateFull...');
+      const result = await onGenerateFull(recipe);
+      console.log('🔍 onGenerateFull returned:', result);
+      console.log('🔍 onGenerateFull completed successfully');
+    } catch (e: any) {
+      console.error('🔍 Error in onGenerateFull:', e);
+      console.error('🔍 Error stack:', e?.stack);
+      showAlert('Error', e?.message || 'Failed to generate recipe details', undefined, {
+        icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      console.log('🔍 Setting isGenerating to false');
+      setIsGenerating(false);
     }
   };
 
@@ -1059,42 +1081,44 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
               </View>
 
               {/* GENERATE FULL BUTTON for Placeholder Recipes */}
-              {!isEditing && displayRecipe.steps.length === 0 && onGenerateFull && (
-                <View className="mb-6 rounded-xl bg-orange-50 p-4 dark:bg-orange-900/20">
-                  <View className="mb-2 flex-row items-center justify-center gap-2">
-                    <Ionicons name="sparkles" size={20} color={isDark ? '#FB923C' : '#EA580C'} />
-                    <Text className="font-visby-bold text-lg text-orange-600 dark:text-orange-400">
-                      Incomplete Recipe
+              {!isEditing &&
+                (!displayRecipe.steps || displayRecipe.steps.length === 0) &&
+                onGenerateFull && (
+                  <View className="mb-6 rounded-xl bg-orange-50 p-4 dark:bg-orange-900/20">
+                    <View className="mb-2 flex-row items-center justify-center gap-2">
+                      <Ionicons name="sparkles" size={20} color={isDark ? '#FB923C' : '#EA580C'} />
+                      <Text className="font-visby-bold text-lg text-orange-600 dark:text-orange-400">
+                        Incomplete Recipe
+                      </Text>
+                    </View>
+                    <Text className="mb-4 text-center font-visby text-sm text-gray-500 dark:text-gray-400">
+                      This recipe was part of your weekly plan but details haven&apos;t been
+                      generated yet.
                     </Text>
+                    <TouchableOpacity
+                      onPress={handleGenerateClick}
+                      disabled={isGenerating}
+                      className="flex-row items-center justify-center rounded-full bg-orange-500 py-3 shadow-md active:bg-orange-600"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <ActivityIndicator size="small" color="white" className="mr-2" />
+                          <Text className="font-visby-bold text-white">Generating...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Ionicons
+                            name="sparkles"
+                            size={20}
+                            color="white"
+                            style={{ marginRight: 8 }}
+                          />
+                          <Text className="font-visby-bold text-white">Generate Full Detail</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
                   </View>
-                  <Text className="mb-4 text-center font-visby text-sm text-gray-500 dark:text-gray-400">
-                    This recipe was part of your weekly plan but details haven&apos;t been generated
-                    yet.
-                  </Text>
-                  <TouchableOpacity
-                    onPress={handleGenerateClick}
-                    disabled={isGenerating}
-                    className="flex-row items-center justify-center rounded-full bg-orange-500 py-3 shadow-md active:bg-orange-600"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <ActivityIndicator size="small" color="white" className="mr-2" />
-                        <Text className="font-visby-bold text-white">Generating...</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="sparkles"
-                          size={20}
-                          color="white"
-                          style={{ marginRight: 8 }}
-                        />
-                        <Text className="font-visby-bold text-white">Generate Full Details</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
+                )}
 
               {/* Steps */}
               <View className="mb-8">

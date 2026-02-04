@@ -6,6 +6,7 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,12 +24,18 @@ import Animated, {
 import { Recipe } from '@/lib/types';
 import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 import { VoiceService } from '@/lib/services/voiceService';
+import { useSettingsStore } from '@/lib/store/settingsStore';
+import { VOICES, SPEEDS } from '@/lib/constants';
 
 const { width } = Dimensions.get('window');
 
 export default function CookingModeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  // Settings Hook
+  const { voiceId, setVoiceId, voiceSpeed, setVoiceSpeed } = useSettingsStore();
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   // Recipe State
   const [recipe, setRecipe] = useState<Recipe | null>(null);
@@ -194,10 +201,83 @@ export default function CookingModeScreen() {
         <Text className="font-visby-bold text-sm uppercase tracking-wide text-white opacity-70">
           Voice Cooking Mode
         </Text>
-        <TouchableOpacity onPress={() => setFontSize((prev) => (prev === 24 ? 32 : 24))}>
-          <Ionicons name="text" size={24} color="white" />
-        </TouchableOpacity>
+        <View className="flex-row gap-2">
+          <TouchableOpacity
+            onPress={() => setSettingsVisible(true)}
+            className="rounded-full bg-gray-800 p-2"
+          >
+            <Ionicons name="settings-outline" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Settings Modal */}
+      <Modal
+        visible={settingsVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSettingsVisible(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="h-[60%] rounded-t-[32px] bg-white p-6 dark:bg-gray-900">
+            <View className="mb-6 flex-row items-center justify-between">
+              <Text className="font-visby-bold text-xl text-black dark:text-white">
+                Voice Settings
+              </Text>
+              <TouchableOpacity onPress={() => setSettingsVisible(false)}>
+                <Ionicons name="close" size={24} color="gray" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Voice Selection */}
+              <Text className="mb-3 font-visby-bold text-gray-500">Voice Assistant</Text>
+              <View className="mb-6 flex-row flex-wrap gap-2">
+                {VOICES.map((v) => (
+                  <TouchableOpacity
+                    key={v.id}
+                    onPress={() => setVoiceId(v.id)}
+                    className={`rounded-xl border px-4 py-3 ${
+                      voiceId === v.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+                    }`}
+                  >
+                    <Text
+                      className={`font-visby-bold ${voiceId === v.id ? 'text-primary' : 'text-gray-900 dark:text-gray-100'}`}
+                    >
+                      {v.name}
+                    </Text>
+                    <Text className="text-xs text-gray-500">{v.description}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Speed Selection */}
+              <Text className="mb-3 font-visby-bold text-gray-500">Speaking Speed</Text>
+              <View className="mb-8 flex-row gap-3">
+                {SPEEDS.map((s) => (
+                  <TouchableOpacity
+                    key={s.value}
+                    onPress={() => setVoiceSpeed(s.value)}
+                    className={`flex-1 items-center justify-center rounded-xl border py-3 ${
+                      voiceSpeed === s.value
+                        ? 'border-primary bg-primary'
+                        : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
+                    }`}
+                  >
+                    <Text
+                      className={`font-visby-bold ${voiceSpeed === s.value ? 'text-black' : 'text-gray-900 dark:text-white'}`}
+                    >
+                      {s.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Progress Bar */}
       <View className="h-2 w-full bg-gray-800">

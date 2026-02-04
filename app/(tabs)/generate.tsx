@@ -66,6 +66,7 @@ export default function GenerateScreen() {
     removeFile,
     handleUploadMultiple,
     generate,
+    completeRecipe,
     alertConfig,
     hideAlert,
     showAlert,
@@ -479,6 +480,17 @@ export default function GenerateScreen() {
           }}
           onDelete={() => setCurrentRecipe(null)}
           onShare={() => {}}
+          onGenerateFull={async (recipe) => {
+            console.log('🚀 onGenerateFull called in generate.tsx with recipe:', recipe);
+            const result = await completeRecipe(recipe);
+            console.log('🚀 completeRecipe result:', result);
+            if (result.success && result.data) {
+              console.log('🚀 Setting updated recipe:', result.data);
+              setCurrentRecipe(result.data);
+            } else {
+              console.log('🚀 completeRecipe failed:', result);
+            }
+          }}
         />
       )}
     </SafeAreaView>

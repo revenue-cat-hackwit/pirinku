@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Audio } from 'expo-av';
-import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger } from 'iconsax-react-native';
 
 interface UseAudioRecorderOptions {
   onSilenceDetected?: () => void;
   silenceThreshold?: number;
   silenceDuration?: number;
   maxDuration?: number; // Optional limit
+  onPermissionDenied?: () => void;
 }
 
 export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
@@ -46,10 +45,7 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
       if (!hasPermission) {
         const granted = await requestPermission();
         if (!granted) {
-          showAlert('Izin Ditolak', 'Mohon izinkan akses mikrofon.', undefined, {
-            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-            type: 'destructive',
-          });
+          options.onPermissionDenied?.();
           return;
         }
       }
@@ -117,12 +113,22 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
     if (silenceTimer.current) clearTimeout(silenceTimer.current);
 
     try {
+      const status = await recordingRef.current.getStatusAsync();
+
+      // Check if recording has valid data
+      if (!status.isRecording && status.durationMillis === 0) {
+        console.warn('No audio data recorded');
+        recordingRef.current = null;
+        return null;
+      }
+
       await recordingRef.current.stopAndUnloadAsync();
       const uri = recordingRef.current.getURI();
       recordingRef.current = null;
       return uri;
     } catch (error) {
       console.error('Stop Rec Error', error);
+      recordingRef.current = null;
       return null;
     }
   };

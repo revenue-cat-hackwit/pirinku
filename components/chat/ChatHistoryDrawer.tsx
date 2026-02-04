@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -18,7 +18,6 @@ interface ChatHistoryDrawerProps {
   onSelectSession: (sessionId: string) => void;
   onDeleteSession?: (sessionId: string) => void;
   onNewChat: () => void;
-  onClearAll: () => void;
 }
 
 export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
@@ -28,27 +27,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
   onSelectSession,
   onDeleteSession,
   onNewChat,
-  onClearAll,
 }) => {
-  const slideAnim = React.useRef(new Animated.Value(-300)).current;
-
-  React.useEffect(() => {
-    if (visible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11,
-      }).start();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: -300,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [visible]);
-
   const formatTime = (timestamp: number) => {
     const now = Date.now();
     const diff = now - timestamp;
@@ -62,13 +41,13 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity activeOpacity={1} onPress={onClose} className="flex-1 bg-black/50">
-        <Animated.View
-          style={{
-            transform: [{ translateX: slideAnim }],
-          }}
-          className="h-full w-[280px] bg-white shadow-2xl"
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <View className="flex-1 flex-row">
+        {/* Sidebar */}
+        <View
+          className={`h-full w-[280px] bg-white shadow-2xl transition-all duration-500 ease-out ${
+            visible ? 'translate-x-0' : '-translate-x-full'
+          }`}
           onStartShouldSetResponder={() => true}
         >
           {/* Header */}
@@ -151,21 +130,23 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
             )}
           </ScrollView>
 
-          {/* Footer Actions */}
-          <View className="border-t border-gray-200 p-4">
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                onClearAll();
-              }}
-              className="flex-row items-center justify-center gap-2 rounded-xl bg-red-50 py-3"
-            >
-              <Ionicons name="trash-outline" size={18} color="#EF4444" />
-              <Text className="font-visby-bold text-sm text-red-600">Clear All History</Text>
-            </TouchableOpacity>
+          {/* Footer Separator */}
+          <View className="border-t border-gray-200 bg-gray-50 px-5 py-3">
+            <Text className="text-center font-visby text-xs text-gray-500">
+              Clear history from Settings
+            </Text>
           </View>
-        </Animated.View>
-      </TouchableOpacity>
+        </View>
+
+        {/* Backdrop - slides with sidebar */}
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={onClose}
+          className={`flex-1 bg-black/50 transition-opacity duration-500 ease-out ${
+            visible ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      </View>
     </Modal>
   );
 };

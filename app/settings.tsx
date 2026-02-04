@@ -3,13 +3,17 @@ import React, { useEffect } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 
 import { Alert, Text, TouchableOpacity, View, ScrollView, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeSelector } from '@/components/ThemeSelector';
+import { Container } from '@/components/Container';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { CustomAlertModal } from '@/components/CustomAlertModal';
 
 import { usePreferencesStore } from '@/lib/store/preferencesStore';
 import { useRouter } from 'expo-router';
+import { AIService } from '@/lib/services/aiService';
+import { showAlert } from '@/lib/utils/globalAlert';
+import { Danger, Trash, TickCircle } from 'iconsax-react-native';
+import * as Haptics from 'expo-haptics';
 
 const ALLERGIES_OPT = ['Peanuts', 'Seafood', 'Dairy', 'Gluten', 'Eggs', 'Soy'];
 const EQUIPMENT_OPT = ['Oven', 'Blender', 'Air Fryer', 'Microwave', 'Mixer'];
@@ -141,8 +145,40 @@ export default function SettingsScreen() {
     router.replace('/');
   };
 
+  const handleClearChatHistory = () => {
+    showAlert(
+      'Clear Chat History',
+      'Are you sure you want to delete all chat history? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AIService.clearHistory();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              showAlert('Success', 'Chat history cleared successfully', undefined, {
+                icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+              });
+            } catch (e) {
+              showAlert('Error', 'Failed to clear chat history', undefined, {
+                icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                type: 'destructive',
+              });
+            }
+          },
+        },
+      ],
+      {
+        icon: <Trash size={32} color="#EF4444" variant="Bold" />,
+        type: 'destructive',
+      },
+    );
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-[#0F0F0F]">
+    <Container noPadding>
       {/* Header */}
       <View className="flex-row items-center border-b border-gray-100 px-4 pb-4 pt-2 dark:border-gray-800">
         <TouchableOpacity onPress={() => router.back()} className="mr-4">
@@ -172,6 +208,20 @@ export default function SettingsScreen() {
             Account
           </Text>
 
+          {/* Clear Chat History */}
+          <TouchableOpacity
+            onPress={handleClearChatHistory}
+            className="mb-3 flex-row items-center justify-between rounded-2xl border border-orange-100 bg-orange-50 p-4 dark:border-orange-900/50 dark:bg-orange-900/20"
+          >
+            <View className="flex-row items-center gap-3">
+              <Ionicons name="trash-outline" size={24} color="#F97316" />
+              <Text className="font-visby-bold text-base text-orange-600 dark:text-orange-500">
+                Clear Chat History
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#F97316" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={handleSignOut}
             className="flex-row items-center justify-between rounded-2xl border border-red-100 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-900/20"
@@ -200,6 +250,6 @@ export default function SettingsScreen() {
         type="destructive"
         icon="log-out-outline"
       />
-    </SafeAreaView>
+    </Container>
   );
 }

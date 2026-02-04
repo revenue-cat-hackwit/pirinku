@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
+import { Container } from '@/components/Container';
 
 interface NotificationItem {
   id: string;
@@ -23,24 +23,6 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
     message: 'Start exploring recipes and generate your first meal plan.',
     time: '2h ago',
     read: false,
-  },
-  {
-    id: '2',
-    type: 'like',
-    title: 'New Like',
-    message: 'Chef Renata liked your Nasi Goreng recipe.',
-    time: '5h ago',
-    read: false,
-    avatar_url: 'https://ui-avatars.com/api/?name=Chef+Renata&background=random',
-  },
-  {
-    id: '3',
-    type: 'follow',
-    title: 'New Follower',
-    message: 'Budi Santoso started following you.',
-    time: '1d ago',
-    read: true,
-    avatar_url: 'https://ui-avatars.com/api/?name=Budi+Santoso&background=random',
   },
 ];
 
@@ -99,7 +81,7 @@ export default function NotificationsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F9FAFB] dark:bg-[#0F0F0F]">
+    <Container className="bg-[#F9FAFB]" noPadding>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 py-4">
         <TouchableOpacity
@@ -124,6 +106,6 @@ export default function NotificationsScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+    </Container>
   );
 }

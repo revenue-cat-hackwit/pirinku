@@ -1,13 +1,19 @@
-import React, { useLayoutEffect, useState } from 'react';
-import { View, TextInput, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
-import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger } from 'iconsax-react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useSettingsStore } from '@/lib/store/settingsStore';
-import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
+import { Audio } from 'expo-av';
+import * as Haptics from 'expo-haptics';
 import { VoiceService } from '@/lib/services/voiceService';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSettingsStore } from '@/lib/store/settingsStore';
 
 interface ChatInputProps {
   value: string;
@@ -26,113 +32,178 @@ export const ChatInput = ({
   loading,
   disabled,
 }: ChatInputProps) => {
-  const router = useRouter();
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Visualizer State
+  const [metering, setMetering] = useState(-160);
+  const [visualizerBars, setVisualizerBars] = useState<number[]>(new Array(20).fill(0.2));
   const language = useSettingsStore((state) => state.language);
 
-  /* Hook Integration */
-  const { isRecording, startRecording, stopRecording, metering, visualizerData } = useAudioRecorder(
-    {
-      // No silence detection needed for Chat Input (manual press)
-    },
-  );
-
-  const [isTranscribing, setIsTranscribing] = useState(false);
-
-  const handleStopAndView = async () => {
-    const uri = await stopRecording();
-    if (uri) {
-      setIsTranscribing(true);
-      try {
-        const res = await VoiceService.processAudio(uri, { language }, true);
-        if (res.transcript) {
-          onChangeText(res.transcript);
-        }
-      } catch (e) {
-        showAlert('Error', 'Failed to process audio.', undefined, {
-          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-          type: 'destructive',
-        });
-      } finally {
-        setIsTranscribing(false);
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (recording) {
+        recording.stopAndUnloadAsync();
       }
-    }
-  };
+    };
+  }, []);
 
-  const handleStopAndSend = async () => {
-    const uri = await stopRecording();
-    if (uri) {
-      setIsTranscribing(true);
-      try {
-        const res = await VoiceService.processAudio(uri, { language }, true);
-        if (res.transcript) {
-          onChangeText(res.transcript);
-          // Wait for state to update then send
-          setTimeout(() => {
-            onSend();
-          }, 500);
-        }
-      } catch (e) {
-        showAlert('Error', 'Failed to process audio.', undefined, {
-          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-          type: 'destructive',
-        });
-      } finally {
-        setIsTranscribing(false);
+  async function startRecording() {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        const { Alert } = require('react-native'); // Safety import
+        Alert.alert('Permission needed', 'Please allow microphone access to use voice chat.');
+        return;
       }
+
+      // Safety cleanup
+      if (recording) {
+        try {
+          await recording.stopAndUnloadAsync();
+        } catch (e) {
+          // ignore
+        }
+        setRecording(null);
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+          isMeteringEnabled: true,
+        },
+        (status) => {
+          if (status.isRecording && status.metering !== undefined) {
+            const curMetering = status.metering || -100;
+            setMetering(curMetering);
+
+            // Update Bars
+            // Normalizing -60db to 0db usually works best for speech
+            const normalized = Math.max(0, (curMetering + 60) / 60);
+
+            setVisualizerBars((prev) => {
+              const newBars = [...prev.slice(1), normalized];
+              return newBars;
+            });
+          }
+        },
+        100, // Update every 100ms
+      );
+
+      setRecording(newRecording);
+      setIsRecording(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      const { Alert } = require('react-native');
+      Alert.alert('Error', 'Failed to start recording');
     }
-  };
+  }
 
-  const handleCancelRecording = async () => {
-    await stopRecording();
-  };
+  async function stopRecordingAndSend() {
+    if (!recording) return;
 
-  const handleMicPress = async () => {
-    await startRecording();
-  };
+    setIsRecording(false);
+    setIsProcessing(true);
+    setVisualizerBars(new Array(20).fill(0.2)); // Reset bars
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-  if (isRecording) {
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+
+      if (uri) {
+        // Process Audio
+        const res = await VoiceService.processAudio(uri, { language }, true);
+        if (res && res.transcript) {
+          onChangeText(res.transcript);
+          // Auto-send is optional, here we just fill text so user can review
+        }
+      }
+    } catch (error) {
+      console.error('Failed to stop/process recording', error);
+      const { Alert } = require('react-native');
+      Alert.alert('Error', 'Failed to process audio');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  async function cancelRecording() {
+    if (!recording) return;
+    setIsRecording(false);
+    setVisualizerBars(new Array(20).fill(0.2)); // Reset bars
+    try {
+      await recording.stopAndUnloadAsync();
+    } catch (e) {
+      // ignore
+    }
+    setRecording(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  }
+
+  // RENDER: Loading / Processing State
+  if (isProcessing) {
     return (
       <View
         className="mx-4 mb-6 flex-row items-center justify-between rounded-full bg-[#1E1F20] px-4 py-3 shadow-xl"
         style={{ elevation: 10 }}
       >
-        {/* Left: Cancel (X) */}
+        <View className="h-10 w-10 opacity-0" />
+        <View className="flex-1 flex-row items-center justify-center gap-2">
+          <ActivityIndicator color="#8BD65E" size="small" />
+          <Text className="font-visby text-xs text-gray-400">Processing audio...</Text>
+        </View>
+        <View className="h-10 w-10 opacity-0" />
+      </View>
+    );
+  }
+
+  // RENDER: Recording State (Themed & Visualizer)
+  if (isRecording) {
+    return (
+      <View
+        className="mx-4 mb-6 flex-row items-center justify-between rounded-full bg-[#1E1F20] px-3 py-2 shadow-xl"
+        style={{ elevation: 10 }}
+      >
+        {/* Left: Delete/Cancel */}
         <TouchableOpacity
-          onPress={handleCancelRecording}
+          onPress={cancelRecording}
           className="h-10 w-10 items-center justify-center rounded-full bg-[#2A2B2C]"
         >
-          <Ionicons name="close" size={20} color="#E3E3E3" />
+          <Ionicons name="trash-outline" size={20} color="#FF5A5F" />
         </TouchableOpacity>
 
-        {/* Center: Visualizer */}
-        <TouchableOpacity
-          onPress={handleStopAndView}
-          className="mx-2 flex-1 items-center justify-center"
-        >
-          <View className="mb-1 h-14 flex-row items-center justify-end gap-[2px] overflow-hidden px-4">
-            {visualizerData.map((level, i) => {
-              // level is 0.0 to 1.0 (approximately)
-              // Apply slight dampening/smoothing
-              const height = 4 + level * 45;
+        {/* Center: Waveform Visualizer */}
+        <View className="mx-3 h-10 flex-1 flex-row items-center justify-center gap-[2px] overflow-hidden">
+          {visualizerBars.map((level, i) => {
+            // dynamic height based on sound level
+            // min height 4, max 32
+            const height = 4 + level * 36;
+            return (
+              <View
+                key={i}
+                className="w-[3px] rounded-full bg-[#8BD65E]"
+                style={{
+                  height: Math.min(32, height),
+                  opacity: 0.6 + level * 0.4, // brighten when loud
+                }}
+              />
+            );
+          })}
+        </View>
 
-              return (
-                <View
-                  key={i}
-                  className="w-[3px] rounded-full bg-red-400"
-                  style={{
-                    height: Math.min(50, height),
-                    opacity: 0.5 + level * 0.5, // Fades out if quiet
-                  }}
-                />
-              );
-            })}
-          </View>
-          <Text className="font-visby text-[10px] text-gray-400">Tap to view text</Text>
-        </TouchableOpacity>
-
-        {/* Right: Send (Arrow Up) - Instant Send */}
+        {/* Right: Send/Done */}
         <TouchableOpacity
-          onPress={handleStopAndSend}
+          onPress={stopRecordingAndSend}
           className="h-10 w-10 items-center justify-center rounded-full bg-white"
         >
           <Ionicons name="arrow-up" size={24} color="black" />
@@ -141,92 +212,119 @@ export const ChatInput = ({
     );
   }
 
-  if (isTranscribing) {
-    return (
-      <View
-        className="mx-4 mb-6 flex-row items-center justify-between rounded-full bg-[#1E1F20] px-4 py-3 shadow-xl"
-        style={{ elevation: 10 }}
-      >
-        <View className="h-10 w-10" />
-        <View className="flex-1 items-center justify-center gap-2">
-          <ActivityIndicator color="#8BD65E" />
-          <Text className="font-visby text-xs text-gray-400">Processing audio...</Text>
-        </View>
-        <View className="h-10 w-10" />
-      </View>
-    );
-  }
+  // RENDER: Normal Input State
   return (
-    <View
-      className="mx-4 mb-6 min-h-[60px] rounded-[32px] bg-[#E8F5E9] p-4"
-      style={{
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 5,
-      }}
-    >
-      {/* Input Area */}
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder="Ask Cooki..."
-        placeholderTextColor="#78909C"
-        className="mb-1 max-h-[100px] font-visby text-base text-gray-900"
-        multiline
-        textAlignVertical="top"
-        editable={!loading && !isTranscribing}
-      />
+    <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
+      <View
+        style={{
+          minHeight: 60,
+          borderRadius: 32,
+          backgroundColor: '#E8F5E9',
+          padding: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 5,
+        }}
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder="Ask Cooki..."
+          placeholderTextColor="#78909C"
+          className="mb-1 max-h-[100px] font-visby text-base text-gray-900"
+          multiline
+          textAlignVertical="top"
+          editable={!loading && !isProcessing}
+        />
 
-      {/* Action Row */}
-      <View className="mt-2 flex-row items-center justify-between">
-        {/* Left: Add Image */}
-        <View className="flex-row items-center gap-4">
-          <TouchableOpacity
-            onPress={onPickImage}
-            disabled={disabled || loading || isRecording}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
-              <Ionicons name="add" size={24} color="#333" />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Right: Buttons */}
-        <View className="flex-row items-center gap-3">
-          {/* 1. Mic always visible if not recording/loading */}
-          {!loading && !isRecording && (
+        <View
+          style={{
+            marginTop: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {/* Action Left */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <TouchableOpacity
-              onPress={handleMicPress}
+              onPress={onPickImage}
+              disabled={disabled || loading}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              className="mr-1"
             >
-              <Ionicons name="mic" size={24} color="#9CA3AF" />
+              <View
+                style={{
+                  height: 40,
+                  width: 40,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 9999,
+                  backgroundColor: 'white',
+                }}
+              >
+                <Ionicons name="add" size={24} color="#333" />
+              </View>
             </TouchableOpacity>
-          )}
+          </View>
 
-          {/* 2. Send OR Voice Mode Button */}
-          {loading ? (
-            <TouchableOpacity onPress={() => console.log('Stop Generating')} className="mr-1">
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
-                <Ionicons name="square" size={14} color="#333" />
+          {/* Action Right */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {/* Mic Button */}
+            <TouchableOpacity
+              onPress={startRecording}
+              disabled={loading || value.trim().length > 0}
+              style={{ opacity: value.trim().length > 0 ? 0.5 : 1 }}
+            >
+              <View
+                style={{
+                  height: 40,
+                  width: 40,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 9999,
+                  backgroundColor: '#F3F4F6',
+                }}
+              >
+                <Ionicons name="mic" size={24} color="#333" />
               </View>
             </TouchableOpacity>
-          ) : value.trim().length > 0 ? (
-            <TouchableOpacity onPress={onSend} disabled={disabled}>
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
-                <Ionicons name="arrow-up" size={24} color="black" />
+
+            {/* Send Button */}
+            <TouchableOpacity
+              onPress={onSend}
+              disabled={disabled || loading || value.trim().length === 0}
+            >
+              <View
+                style={{
+                  height: 40,
+                  width: 40,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 9999,
+                  backgroundColor: value.trim().length > 0 ? '#8BD65E' : '#F3F4F6',
+                  shadowColor: value.trim().length > 0 ? '#000' : 'transparent',
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: value.trim().length > 0 ? 2 : 0,
+                }}
+              >
+                {loading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={value.trim().length > 0 ? 'white' : '#9CA3AF'}
+                  />
+                ) : (
+                  <Ionicons
+                    name="arrow-up"
+                    size={24}
+                    color={value.trim().length > 0 ? 'white' : '#9CA3AF'}
+                  />
+                )}
               </View>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => router.push('/voice-mode')}>
-              <View className="h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white">
-                <Ionicons name="pulse" size={24} color="#8BD65E" />
-              </View>
-            </TouchableOpacity>
-          )}
+          </View>
         </View>
       </View>
     </View>

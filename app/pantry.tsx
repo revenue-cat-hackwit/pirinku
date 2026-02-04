@@ -9,9 +9,9 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Container } from '@/components/Container';
 import * as ImagePicker from 'expo-image-picker';
 import { PantryService, PantryItem } from '@/lib/services/pantryService';
 import { RecipeService } from '@/lib/services/recipeService';
@@ -285,7 +285,7 @@ export default function PantryScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F9FAFB]">
+    <Container className="bg-[#F9FAFB]" noPadding>
       <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-5 py-4">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="black" />
@@ -595,6 +595,6 @@ export default function PantryScreen() {
         onClose={() => setIsCameraVisible(false)}
         onPhotoTaken={handleCameraCapture}
       />
-    </SafeAreaView>
+    </Container>
   );
 }

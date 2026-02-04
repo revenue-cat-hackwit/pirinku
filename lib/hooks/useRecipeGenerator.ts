@@ -302,37 +302,31 @@ export const useRecipeGenerator = ({
     }
   };
 
-  /**
-   * Complete a placeholder recipe (Generate full details from Title/Desc)
-   */
   const completeRecipe = async (recipe: Recipe) => {
+    console.log('🔥 completeRecipe called with recipe:', recipe.id);
+
     // 1. Check Quota
     if (!checkCanGenerate()) {
-      setAlertConfig({
-        visible: true,
-        title: 'Daily Limit Reached 🍳',
-        message: 'Upgrade to Pro to generate full recipes!',
-        confirmText: 'Upgrade to Pro',
-        cancelText: 'Cancel',
-        showCancel: true,
-        onConfirm: async () => {
-          hideAlert();
-          await onPaywallRequest();
-        },
-        type: 'default',
-      });
-      return { success: false };
+      console.log('🔥 Quota check failed - user cannot generate');
+      return {
+        success: false,
+        error: 'QUOTA_EXCEEDED',
+        needsPaywall: true,
+      };
     }
 
+    console.log('🔥 Quota check passed, starting generation...');
     setLoading(true);
     setLoadingMessage('Completing your recipe...');
 
     try {
+      console.log('🔥 Calling RecipeService.generateFromVideo...');
       // 2. Generate details using Text-Only mode (Backend handles this switch)
       const generated = await RecipeService.generateFromVideo({
         title: recipe.title,
         description: recipe.description,
       });
+      console.log('🔥 Generated recipe:', generated);
 
       // 2.5 Auto-Generate Image (Enhancement)
       // Only generate if no image exists
@@ -360,6 +354,7 @@ export const useRecipeGenerator = ({
         sourceUrl: recipe.sourceUrl,
       };
 
+      console.log('🔥 Saving recipe to storage...');
       // 4. Save/Update (Cloud)
       await saveRecipe(updatedRecipe);
       setCurrentRecipe(updatedRecipe);
@@ -367,9 +362,12 @@ export const useRecipeGenerator = ({
       // 5. Increment Usage
       incrementUsage();
 
+      console.log('🔥 Recipe completed successfully');
       return { success: true, data: updatedRecipe };
     } catch (err: any) {
-      console.error('Complete Recipe Error:', err);
+      console.error('🔥 Complete Recipe Error:', err);
+      console.error('🔥 Error message:', err?.message);
+      console.error('🔥 Error stack:', err?.stack);
       toastRef.current?.show(err.message || 'Failed to complete recipe', 'error');
       return { success: false, error: err.message };
     } finally {

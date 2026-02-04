@@ -41,8 +41,8 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
     if (visible) {
       setShowModal(true);
     } else {
-      // Wait for exit animation (200ms) to finish before unmounting Modal
-      const timer = setTimeout(() => setShowModal(false), 200);
+      // Wait for exit animation (180ms) to finish before unmounting Modal
+      const timer = setTimeout(() => setShowModal(false), 180);
       return () => clearTimeout(timer);
     }
   }, [visible]);
@@ -64,8 +64,8 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
         <>
           {/* Overlay Backdrop */}
           <Animated.View
-            entering={FadeIn.duration(200)}
-            exiting={FadeOut.duration(200)}
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(180)}
             className="absolute inset-0 bg-black/60"
           >
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
@@ -74,8 +74,8 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
           {/* Modal Content */}
           <View className="pointer-events-box-none flex-1 items-center justify-center px-6">
             <Animated.View
-              entering={ZoomIn.duration(200).easing(Easing.out(Easing.quad))}
-              exiting={ZoomOut.duration(200).easing(Easing.in(Easing.quad))}
+              entering={ZoomIn.duration(180).easing(Easing.out(Easing.quad))}
+              exiting={ZoomOut.duration(180).easing(Easing.in(Easing.quad))}
               className="pointer-events-auto w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl dark:bg-[#1E1F20]"
             >
               {/* Icon */}
