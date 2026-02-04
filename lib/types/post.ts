@@ -1,4 +1,48 @@
 // ============= Post Types =============
+
+// Raw API Response Types (from backend)
+export interface RawPostUser {
+    _id: string;
+    username: string;
+    fullName: string;
+    avatar?: string | null;
+}
+
+export interface RawPostComment {
+    userId: RawPostUser;
+    content: string;
+    createdAt: string;
+}
+
+export interface RawPost {
+    _id: string;
+    userId: RawPostUser;
+    content: string;
+    imageUrl?: string | null;
+    likes: string[];
+    comments: RawPostComment[];
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+    user: RawPostUser;
+    likesCount: number;
+    commentsCount: number;
+}
+
+export interface RawPostsResponse {
+    success: boolean;
+    data: {
+        posts: RawPost[];
+        pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+        };
+    };
+}
+
+// Transformed Types (used in components)
 export interface PostUser {
     id: string;
     username: string;
@@ -22,6 +66,7 @@ export interface Post {
     isLiked: boolean;
     createdAt: string;
     updatedAt: string;
+    comments?: PostComment[];
 }
 
 export interface CurrentUser {

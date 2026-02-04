@@ -11,15 +11,15 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger, TickCircle, MagicStar, Trash } from 'iconsax-react-native';
+import { Danger, TickCircle, MagicStar, Trash, HambergerMenu, Diamonds } from 'iconsax-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Message, Recipe } from '@/lib/types';
 import { AIService } from '@/lib/services/aiService';
+import { ChatService } from '@/lib/services/chatService';
 import { RecipeService } from '@/lib/services/recipeService';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { EmptyChat } from '@/components/chat/EmptyChat';
-import { Ionicons } from '@expo/vector-icons';
 import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 import RevenueCatUI from 'react-native-purchases-ui';
 import * as Haptics from 'expo-haptics';
@@ -85,7 +85,7 @@ const ThinkingIndicator = () => {
     <View className="p-4 pb-8 pt-2">
       <View className="mb-2 flex-row items-center">
         <Animated.View style={{ transform: [{ rotate: spin }] }}>
-          <Ionicons name="sparkles" size={24} color="#8BD65E" />
+          <MagicStar size={24} color="#8BD65E" variant="Bold" />
         </Animated.View>
       </View>
       <Text className="text-right font-visby text-xs text-gray-400">
@@ -100,15 +100,14 @@ export default function Chatbot() {
   const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
-  // Initialize with a new session ID if none exists, or load last session
-  const [currentSessionId, setCurrentSessionId] = useState<string>(
-    Date.now().toString(36) + Math.random().toString(36).substr(2),
-  );
+  // Current chat title ID (null means new chat)
+  const [currentTitleId, setCurrentTitleId] = useState<string | null>(null);
 
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
+  const [chatHistoryLoading, setChatHistoryLoading] = useState(false);
 
   // Subscription Hooks
   const { checkCanGenerate, incrementUsage, initialize } = useSubscriptionStore();
@@ -128,15 +127,16 @@ export default function Chatbot() {
 
   useEffect(() => {
     // Initial load: Try to get sessions first, if any, load the latest one.
-    // If not, we stay with the default new random session ID.
     loadSessions().then((sessions) => {
       if (sessions.length > 0) {
         // Load the most recent session
         const lastSession = sessions[0];
-        setCurrentSessionId(lastSession.id);
+        setCurrentTitleId(lastSession.id);
         loadHistory(lastSession.id);
       } else {
-        // New user or no history, keeps the random ID initialized in state
+        // New user or no history, start with empty chat (titleId = null)
+        setCurrentTitleId(null);
+        setMessages([]);
       }
     });
     loadSavedRecipes();
@@ -150,18 +150,54 @@ export default function Chatbot() {
   }, [historyDrawerVisible]);
 
   const loadSessions = async () => {
-    const sessions = await AIService.getSessions();
-    setChatSessions(sessions);
-    return sessions;
+    setChatHistoryLoading(true);
+    try {
+      const response = await ChatService.getChatTitles();
+      
+      if (response.success && response.data) {
+        // Transform API data to ChatSession format
+        const sessions = response.data.map((chat) => ({
+          id: chat._id,
+          title: chat.title,
+          lastMessage: '', // API doesn't provide this, could be enhanced
+          timestamp: new Date(chat.createdAt).getTime(),
+          messageCount: 0, // API doesn't provide this, could be enhanced
+        }));
+        
+        setChatSessions(sessions);
+        return sessions;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to load chat sessions:', error);
+      return [];
+    } finally {
+      setChatHistoryLoading(false);
+    }
   };
 
-  const loadHistory = async (sessionId: string) => {
+  const loadHistory = async (titleId: string) => {
     setLoading(true);
     try {
-      const history = await AIService.getHistory(sessionId);
-      setMessages(history);
+      const response = await ChatService.getChatHistory(titleId);
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Transform API messages to app Message format
+        const chatHistory = response.data[0];
+        const transformedMessages: Message[] = chatHistory.messages.map((msg, index) => ({
+          id: `${titleId}-${index}`,
+          role: msg.role,
+          content: msg.content,
+          timestamp: Date.now() - (chatHistory.messages.length - index) * 1000, // Fake timestamps
+        }));
+        
+        setMessages(transformedMessages);
+      } else {
+        setMessages([]);
+      }
     } catch (e) {
       console.error('Failed to load history', e);
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -206,10 +242,11 @@ export default function Chatbot() {
       return;
     }
 
+    const userMessageContent = inputText.trim();
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputText.trim(),
+      content: userMessageContent,
       timestamp: Date.now(),
     };
 
@@ -218,57 +255,41 @@ export default function Chatbot() {
     setLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Save User Msg with Session ID
-    AIService.saveMessage('user', userMessage.content!, currentSessionId);
-
     try {
-      const allMessages = messages.concat(userMessage);
-
-      console.log('[Chatbot] Sending via Service:', { count: allMessages.length });
-
-      // Add context about saved recipes if user asks for recommendations
-      const isAskingForRecommendation =
-        inputText.toLowerCase().includes('rekomen') ||
-        inputText.toLowerCase().includes('suggest') ||
-        inputText.toLowerCase().includes('ide') ||
-        inputText.toLowerCase().includes('masak apa');
-
-      let contextMessage = '';
-      if (isAskingForRecommendation && savedRecipes.length > 0) {
-        const recipeList = savedRecipes
-          .slice(0, 10)
-          .map((r) => r.title)
-          .join(', ');
-        contextMessage = `\n\n[Context: User has ${savedRecipes.length} saved recipes including: ${recipeList}. You can recommend similar recipes or variations based on these.]`;
+      let titleId = currentTitleId;
+      
+      // If this is the first message (no titleId), create a new title
+      if (!titleId) {
+        const titleResponse = await ChatService.createChatTitle(userMessageContent);
+        if (titleResponse.success && titleResponse.data) {
+          titleId = titleResponse.data._id;
+          setCurrentTitleId(titleId);
+          // Refresh session list to show new chat
+          loadSessions();
+        } else {
+          throw new Error('Failed to create chat title');
+        }
       }
 
-      const aiResponseContent = await AIService.sendMessage(
-        contextMessage
-          ? [
-              ...allMessages.slice(0, -1),
-              { ...userMessage, content: userMessage.content + contextMessage },
-            ]
-          : allMessages,
-      );
+      // Send message and get AI response
+      const response = await ChatService.askAndSave(titleId, userMessageContent, 'groq');
+      
+      if (response.success && response.data) {
+        // 2. Increment Usage on Success
+        incrementUsage();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // 2. Increment Usage on Success
-      incrementUsage();
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: response.data.response,
+          timestamp: Date.now(),
+        };
 
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: aiResponseContent,
-        timestamp: Date.now(),
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-
-      // Save AI Msg with Session ID
-      AIService.saveMessage('assistant', aiResponseContent, currentSessionId);
-
-      // Update session list in background to reflect new message immediately in drawer next time
-      loadSessions();
+        setMessages((prev) => [...prev, aiMessage]);
+      } else {
+        throw new Error('Failed to get AI response');
+      }
     } catch (error: any) {
       console.error('[Chatbot] Error calling AI:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -276,6 +297,9 @@ export default function Chatbot() {
         icon: <Danger size={32} color="#EF4444" variant="Bold" />,
         type: 'destructive',
       });
+      
+      // Remove the user message if failed
+      setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
     } finally {
       setLoading(false);
     }
@@ -352,7 +376,7 @@ export default function Chatbot() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       // Save User Msg (Image + Text) with Session ID
-      AIService.saveMessage('user', userMessage.content!, currentSessionId);
+      AIService.saveMessage('user', userMessage.content!, currentTitleId);
 
       try {
         const allMessages = messages.concat(userMessage);
@@ -373,7 +397,7 @@ export default function Chatbot() {
         setMessages((prev) => [...prev, aiMessage]);
 
         // Save AI with Session ID
-        AIService.saveMessage('assistant', aiResponseContent, currentSessionId);
+        AIService.saveMessage('assistant', aiResponseContent, currentTitleId);
         loadSessions();
       } catch (error: any) {
         console.error('Error analyzing image:', error);
@@ -523,9 +547,10 @@ export default function Chatbot() {
         visible={historyDrawerVisible}
         onClose={() => setHistoryDrawerVisible(false)}
         sessions={chatSessions} // Use real sessions
+        loading={chatHistoryLoading}
         onSelectSession={(id) => {
           console.log('Selected session:', id);
-          setCurrentSessionId(id);
+          setCurrentTitleId(id);
           loadHistory(id);
           setHistoryDrawerVisible(false);
         }}
@@ -541,11 +566,9 @@ export default function Chatbot() {
                   await loadSessions();
 
                   // If current session is deleted, start new one
-                  if (sessionId === currentSessionId) {
+                  if (sessionId === currentTitleId) {
                     setMessages([]);
-                    setCurrentSessionId(
-                      Date.now().toString(36) + Math.random().toString(36).substr(2),
-                    );
+                    setCurrentTitleId(null);
                   }
 
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -562,8 +585,7 @@ export default function Chatbot() {
         onNewChat={() => {
           setMessages([]);
           setInputText('');
-          // Generate new Session ID
-          setCurrentSessionId(Date.now().toString(36) + Math.random().toString(36).substr(2));
+          setCurrentTitleId(null);
           setHistoryDrawerVisible(false);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           showAlert('New Chat Started', 'Ready for a fresh conversation! 🍳', undefined, {
@@ -579,7 +601,7 @@ export default function Chatbot() {
       >
         <View className="flex-1">
           {/* Header with Hamburger Menu */}
-          <View className="flex-row items-center justify-between bg-white px-4 pb-3 pt-12 shadow-sm">
+          <View className="flex-row items-center justify-between bg-white px-4 pb-3 pt-12">
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -587,7 +609,7 @@ export default function Chatbot() {
               }}
               className="rounded-full bg-gray-100 p-2"
             >
-              <Ionicons name="menu" size={24} color="#333" />
+              <HambergerMenu size={24} color="#333" variant="Outline" />
             </TouchableOpacity>
 
             <Text className="font-visby-bold text-xl text-[#8BD65E]">Cooki</Text>
@@ -602,9 +624,9 @@ export default function Chatbot() {
                   await initialize();
                 }
               }}
-              className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2 shadow-sm"
+              className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
             >
-              <Ionicons name="diamond" size={16} color="white" />
+              <Diamonds size={16} color="white" variant="Bold" />
               <Text className="font-visby-bold text-sm text-white">Pro</Text>
             </TouchableOpacity>
           </View>

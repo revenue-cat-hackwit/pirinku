@@ -27,6 +27,9 @@ export default function TabsLayout() {
           elevation: 0,
           shadowOpacity: 0,
           borderTopWidth: 0,
+          paddingTop: 5,
+          paddingBottom: 5,
+          height: 120,
         },
       }}
     >

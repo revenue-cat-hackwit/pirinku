@@ -9,7 +9,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Microphone, Add, ArrowUp, Trash, MicrophoneSlash } from 'iconsax-react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { VoiceService } from '@/lib/services/voiceService';
@@ -144,7 +144,7 @@ export const ChatInput = React.memo(
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           // Optional: Maybe show a tiny toast "Didn't catch that?" but for now just silence is fine or specific alert
           showAlert("Didn't catch that", 'Please speak a bit louder.', undefined, {
-            icon: <Ionicons name="mic-off" size={32} color="#F59E0B" />,
+            icon: <MicrophoneSlash size={32} color="#F59E0B" variant="Bold" />,
           });
         } else {
           throw new Error('No transcript in response. Response: ' + JSON.stringify(res));
@@ -204,11 +204,6 @@ export const ChatInput = React.memo(
             backgroundColor: '#1E1F20',
             paddingHorizontal: 16,
             paddingVertical: 12,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 4,
-            elevation: 10,
           }}
         >
           <View style={{ height: 40, width: 40, opacity: 0 }} />
@@ -244,11 +239,6 @@ export const ChatInput = React.memo(
               borderRadius: 32,
               paddingVertical: 16,
               paddingHorizontal: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 10,
             }}
           >
             <Text
@@ -282,7 +272,7 @@ export const ChatInput = React.memo(
                   backgroundColor: '#2A2B2C',
                 }}
               >
-                <Ionicons name="trash-outline" size={24} color="#FF5A5F" />
+                <Trash size={24} color="#FF5A5F" variant="Outline" />
               </TouchableOpacity>
 
               {/* Center: Waveform Visualizer */}
@@ -329,7 +319,7 @@ export const ChatInput = React.memo(
                   backgroundColor: 'white',
                 }}
               >
-                <Ionicons name="arrow-up" size={28} color="black" />
+                <ArrowUp size={28} color="black" variant="Bold" />
               </TouchableOpacity>
             </View>
           </View>
@@ -346,11 +336,6 @@ export const ChatInput = React.memo(
             borderRadius: 32,
             backgroundColor: '#E8F5E9',
             padding: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 5,
           }}
         >
           <TextInput
@@ -395,7 +380,7 @@ export const ChatInput = React.memo(
                     backgroundColor: 'white',
                   }}
                 >
-                  <Ionicons name="add" size={24} color="#333" />
+                  <Add size={24} color="#333" variant="Outline" />
                 </View>
               </TouchableOpacity>
             </View>
@@ -418,7 +403,7 @@ export const ChatInput = React.memo(
                     backgroundColor: '#F3F4F6',
                   }}
                 >
-                  <Ionicons name="mic" size={24} color="#333" />
+                  <Microphone size={24} color="#333" variant="Outline" />
                 </View>
               </TouchableOpacity>
 
@@ -435,10 +420,6 @@ export const ChatInput = React.memo(
                     justifyContent: 'center',
                     borderRadius: 9999,
                     backgroundColor: value.trim().length > 0 ? '#8BD65E' : '#F3F4F6',
-                    shadowColor: value.trim().length > 0 ? '#000' : 'transparent',
-                    shadowOpacity: 0.1,
-                    shadowRadius: 2,
-                    elevation: value.trim().length > 0 ? 2 : 0,
                   }}
                 >
                   {loading ? (
@@ -447,10 +428,10 @@ export const ChatInput = React.memo(
                       color={value.trim().length > 0 ? 'white' : '#9CA3AF'}
                     />
                   ) : (
-                    <Ionicons
-                      name="arrow-up"
+                    <ArrowUp
                       size={24}
                       color={value.trim().length > 0 ? 'white' : '#9CA3AF'}
+                      variant="Bold"
                     />
                   )}
                 </View>

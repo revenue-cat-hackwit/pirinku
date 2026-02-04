@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
-import { Ionicons } from '@expo/vector-icons';
+import { Archive, Lamp } from 'iconsax-react-native';
 import Markdown from 'react-native-markdown-display';
 import { Message } from '@/lib/types';
 
@@ -65,7 +65,7 @@ export const ChatMessage = ({ message, onSaveRecipe, onGetIdeas }: ChatMessagePr
           <View className="max-w-[85%] rounded-2xl bg-gray-100 p-4">
             {typeof content === 'string' ? (
               <Markdown style={markdownStyles}>{content}</Markdown>
-            ) : (
+            ) : Array.isArray(content) ? (
               <View>
                 {content.map((part, index) => (
                   <View key={index}>
@@ -93,6 +93,8 @@ export const ChatMessage = ({ message, onSaveRecipe, onGetIdeas }: ChatMessagePr
                   </View>
                 ))}
               </View>
+            ) : (
+              <Text style={{ color: '#1F2937' }}>No content</Text>
             )}
             <Text className="mt-1 text-right font-visby text-[10px] text-gray-400">
               {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -106,7 +108,7 @@ export const ChatMessage = ({ message, onSaveRecipe, onGetIdeas }: ChatMessagePr
                 onPress={() => onSaveRecipe?.(contentStr)}
                 className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg border border-green-100 bg-green-50 px-3 py-2"
               >
-                <Ionicons name="bookmark" size={14} color="#10B981" />
+                <Archive size={14} color="#10B981" variant="Bold" />
                 <Text className="font-visby-bold text-xs text-green-700">Save Recipe</Text>
               </TouchableOpacity>
 
@@ -114,7 +116,7 @@ export const ChatMessage = ({ message, onSaveRecipe, onGetIdeas }: ChatMessagePr
                 onPress={onGetIdeas}
                 className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg border border-orange-100 bg-orange-50 px-3 py-2"
               >
-                <Ionicons name="bulb" size={14} color="#F97316" />
+                <Lamp size={14} color="#F97316" variant="Bold" />
                 <Text className="font-visby-bold text-xs text-orange-700">Get Ideas</Text>
               </TouchableOpacity>
             </View>
@@ -130,7 +132,7 @@ export const ChatMessage = ({ message, onSaveRecipe, onGetIdeas }: ChatMessagePr
           <View className="max-w-[85%] rounded-2xl bg-[#E8F5E9] p-4">
             {typeof content === 'string' ? (
               <Text className="font-visby text-base text-gray-900">{content}</Text>
-            ) : (
+            ) : Array.isArray(content) ? (
               <View>
                 {content.map((part, index) => (
                   <View key={index}>
@@ -147,6 +149,8 @@ export const ChatMessage = ({ message, onSaveRecipe, onGetIdeas }: ChatMessagePr
                   </View>
                 ))}
               </View>
+            ) : (
+              <Text className="font-visby text-base text-gray-900">No content</Text>
             )}
             <Text className="mt-1 text-right font-visby text-[10px] text-gray-400">
               {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

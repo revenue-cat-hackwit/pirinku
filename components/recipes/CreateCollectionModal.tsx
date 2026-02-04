@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger } from 'iconsax-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Danger, CloseCircle, TickCircle } from 'iconsax-react-native';
 import { useColorScheme } from 'nativewind';
 import { Recipe } from '@/lib/types';
 
@@ -67,7 +66,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
         {/* Simple Header */}
         <View className="z-10 flex-row items-center justify-between bg-white px-5 pb-4 pt-12 shadow-sm dark:bg-[#1A1A1A]">
           <TouchableOpacity onPress={onClose} className="p-2">
-            <Ionicons name="close" size={24} color={isDark ? 'white' : 'black'} />
+            <CloseCircle size={24} color={isDark ? 'white' : 'black'} />
           </TouchableOpacity>
           <Text className="font-visby-bold text-xl text-gray-900 dark:text-white">
             New Collection
@@ -125,7 +124,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                       <View
                         className={`mr-4 h-6 w-6 items-center justify-center rounded-full border ${isSelected ? 'border-orange-500 bg-orange-500' : 'border-gray-300 dark:border-gray-600'}`}
                       >
-                        {isSelected && <Ionicons name="checkmark" size={16} color="white" />}
+                        {isSelected && <TickCircle size={16} color="white" variant="Bold" />}
                       </View>
 
                       {/* Image */}

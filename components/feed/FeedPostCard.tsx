@@ -31,11 +31,11 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComm
       : post.content.substring(0, MAX_TEXT_LENGTH) + '...';
 
   return (
-    <View className="mx-4 mb-4 overflow-hidden rounded-2xl border border-[#8BD65E] bg-white shadow-sm dark:bg-gray-900">
+    <View className="mx-4 mb-4 overflow-hidden rounded-3xl border border-black/15 bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-between p-4 pb-3">
         <View className="flex-1 flex-row items-center">
-          <View className="h-12 w-12 overflow-hidden rounded-full border-2 border-green-400 bg-gray-200 dark:bg-gray-700">
+          <View className="h-12 w-12 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
             <Image
               source={{
                 uri:
@@ -55,11 +55,6 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComm
             </Text>
           </View>
         </View>
-
-        {/* Three dots menu */}
-        <TouchableOpacity className="p-2" activeOpacity={0.7}>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#9CA3AF" />
-        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -154,18 +149,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComm
               {post.commentsCount}
             </Text>
           </TouchableOpacity>
-
-          {/* Share */}
-          <TouchableOpacity className="flex-row items-center" activeOpacity={0.7}>
-            <Ionicons name="paper-plane-outline" size={20} color="#6B7280" />
-            <Text className="ml-1.5 font-visby text-sm text-gray-600 dark:text-gray-400">10</Text>
-          </TouchableOpacity>
         </View>
-
-        {/* Bookmark */}
-        <TouchableOpacity activeOpacity={0.7}>
-          <Ionicons name="bookmark-outline" size={22} color="#6B7280" />
-        </TouchableOpacity>
       </View>
     </View>
   );

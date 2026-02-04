@@ -1,4 +1,5 @@
 import apiClient, { TokenStorage } from './apiClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     CreateAccountRequest,
     CreateAccountResponse,
@@ -47,6 +48,10 @@ export const AuthApiService = {
         // Save token to storage
         if (response.data.success && response.data.data.token) {
             await TokenStorage.saveToken(response.data.data.token);
+            // Save user ID for later use
+            if (response.data.data.user?.id) {
+                await AsyncStorage.setItem('pirinku_user_id', response.data.data.user.id);
+            }
         }
 
         return response.data;
@@ -65,6 +70,10 @@ export const AuthApiService = {
         // Save token to storage
         if (response.data.success && response.data.data.token) {
             await TokenStorage.saveToken(response.data.data.token);
+            // Save user ID for later use
+            if (response.data.data.user?.id) {
+                await AsyncStorage.setItem('pirinku_user_id', response.data.data.user.id);
+            }
         }
 
         return response.data;

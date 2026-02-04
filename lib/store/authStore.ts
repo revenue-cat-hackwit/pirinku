@@ -109,6 +109,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
     // Clear persisted caches
     const RECIPES_STORAGE_KEY = 'pirinku_local_recipes_v1';
     await AsyncStorage.removeItem(RECIPES_STORAGE_KEY);
+    await AsyncStorage.removeItem('pirinku_user_id');
 
     set({ token: null, user: null });
   },

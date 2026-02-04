@@ -15,16 +15,17 @@ import {
   ScrollView,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger, TickCircle } from 'iconsax-react-native';
+import { Danger, TickCircle, Diamonds, ArrowLeft, Filter, SearchNormal1, CloseCircle, Book, AddCircle, Calendar, Box, ShoppingCart, Add, Clock, TextalignJustifycenter, Timer1, Flash } from 'iconsax-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '@/lib/types';
 import { useRecipeStorage } from '@/lib/hooks/useRecipeStorage';
 import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from 'nativewind';
+import RevenueCatUI from 'react-native-purchases-ui';
+import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 
 // Components
 import { RecipeCard } from '@/components/recipes/RecipeCard';
@@ -44,6 +45,7 @@ if (Platform.OS === 'android') {
 
 export default function SavedRecipesScreen() {
   const router = useRouter();
+  const { initialize } = useSubscriptionStore();
   const {
     savedRecipes,
     isLoading,
@@ -368,7 +370,7 @@ export default function SavedRecipesScreen() {
     if (searchQuery) {
       return (
         <View className="mt-20 items-center justify-center opacity-70">
-          <Ionicons name="search-outline" size={80} color="#ccc" />
+          <SearchNormal1 size={80} color="#ccc" />
           <Text className="mt-4 font-visby-bold text-lg text-gray-500 dark:text-gray-400">
             No recipes found
           </Text>
@@ -381,7 +383,7 @@ export default function SavedRecipesScreen() {
 
     return (
       <View className="mt-20 items-center justify-center opacity-70">
-        <Ionicons name="book-outline" size={80} color="#ccc" />
+        <Book size={80} color="#ccc" />
         <Text className="mt-4 font-visby-bold text-lg text-gray-500 dark:text-gray-400">
           No recipes saved yet
         </Text>
@@ -392,8 +394,8 @@ export default function SavedRecipesScreen() {
           onPress={() => router.push('/(tabs)/generate')}
           className="flex-row items-center rounded-full bg-[#8BD65E] px-6 py-3 shadow-lg shadow-green-200 dark:shadow-none"
         >
-          <Ionicons name="add-circle" size={20} color="white" style={{ marginRight: 8 }} />
-          <Text className="font-visby-bold text-white">Create My First Recipe</Text>
+          <AddCircle size={20} color="white" variant="Bold" />
+          <Text className="ml-2 font-visby-bold text-white">Create My First Recipe</Text>
         </TouchableOpacity>
       </View>
     );
@@ -426,38 +428,66 @@ export default function SavedRecipesScreen() {
         key={manualModalVisible ? 'manual-visible' : 'manual-hidden'}
       />
 
-      {/* HEADER */}
-      <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
+      {/* HEADER - AppBar */}
+      <View className="flex-row items-center justify-between bg-white px-4 pb-3 pt-2 dark:bg-[#0F0F0F]">
         <View className="flex-1 flex-row items-center">
           {viewMode === 'list' && (
             <TouchableOpacity onPress={handleBackToCollections} className="mr-3">
-              <Ionicons name="arrow-back" size={24} color={isDark ? 'white' : 'black'} />
+              <ArrowLeft size={24} color={isDark ? 'white' : '#8BD65E'} variant="Outline" />
             </TouchableOpacity>
           )}
-          <Text className="font-visby-bold text-3xl text-gray-900 dark:text-white">
-            {viewMode === 'list' && activeCollection ? activeCollection : 'My Kitchen 🍳'}
+          <Text className="font-visby-bold text-xl text-[#8BD65E]">
+            {viewMode === 'list' && activeCollection ? activeCollection : 'My Kitchen'}
           </Text>
         </View>
 
-        <View className="flex-row gap-3">
+        <View className="flex-row items-center gap-3">
           {viewMode === 'list' && (
             <TouchableOpacity
               onPress={toggleSortMenu}
-              className={`rounded-full border p-2 shadow-sm ${showSortMenu ? 'border-blue-500 bg-blue-500' : 'border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900'}`}
+              className={`h-10 w-10 items-center justify-center rounded-full ${
+                showSortMenu
+                  ? 'bg-[#8BD65E]'
+                  : 'bg-gray-100 dark:bg-gray-800'
+              }`}
             >
-              <Ionicons name="funnel" size={20} color={showSortMenu ? 'white' : '#3B82F6'} />
+              <Filter
+                size={20}
+                color={showSortMenu ? 'white' : isDark ? '#9CA3AF' : '#666'}
+                variant="Outline"
+              />
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             onPress={toggleSearch}
-            className={`rounded-full border p-2 shadow-sm ${showSearch ? 'border-red-500 bg-red-500' : 'border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900'}`}
+            className={`h-10 w-10 items-center justify-center rounded-full ${
+              showSearch
+                ? 'bg-red-500'
+                : 'bg-gray-100 dark:bg-gray-800'
+            }`}
           >
-            <Ionicons
-              name={showSearch ? 'close' : 'search'}
-              size={20}
-              color={showSearch ? 'white' : '#8BD65E'}
-            />
+            {showSearch ? (
+              <CloseCircle size={20} color="white" variant="Bold" />
+            ) : (
+              <SearchNormal1 size={20} color={isDark ? '#9CA3AF' : '#666'} variant="Outline" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={async () => {
+              const paywallResult = await RevenueCatUI.presentPaywall();
+              if (
+                paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
+                paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
+              ) {
+                await initialize();
+              }
+            }}
+            className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
+          >
+            <Diamonds size={16} color="white" variant="Bold" />
+            <Text className="font-visby-bold text-sm text-white">Pro</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -470,38 +500,105 @@ export default function SavedRecipesScreen() {
             SORT BY
           </Text>
           <View className="mb-4 flex-row flex-wrap gap-2">
-            {[
-              { value: 'recent', label: 'Recent', icon: 'time-outline' },
-              { value: 'name', label: 'Name', icon: 'text-outline' },
-              { value: 'time', label: 'Cook Time', icon: 'hourglass-outline' },
-              { value: 'calories', label: 'Calories', icon: 'flame-outline' },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                onPress={() => {
-                  setSortBy(option.value as any);
-                  Haptics.selectionAsync();
-                }}
-                className={`flex-row items-center rounded-full px-4 py-2 ${
-                  sortBy === option.value
-                    ? 'bg-blue-500'
-                    : 'border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+            {/* Recent */}
+            <TouchableOpacity
+              onPress={() => {
+                setSortBy('recent');
+                Haptics.selectionAsync();
+              }}
+              className={`flex-row items-center rounded-full px-4 py-2 ${
+                sortBy === 'recent'
+                  ? 'bg-blue-500'
+                  : 'border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+              }`}
+            >
+              <Clock
+                size={16}
+                color={sortBy === 'recent' ? 'white' : isDark ? '#9CA3AF' : '#6B7280'}
+              />
+              <Text
+                className={`ml-1 font-visby-bold text-xs ${
+                  sortBy === 'recent' ? 'text-white' : 'text-gray-600 dark:text-gray-300'
                 }`}
               >
-                <Ionicons
-                  name={option.icon as any}
-                  size={16}
-                  color={sortBy === option.value ? 'white' : isDark ? '#9CA3AF' : '#6B7280'}
-                />
-                <Text
-                  className={`ml-1 font-visby-bold text-xs ${
-                    sortBy === option.value ? 'text-white' : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                Recent
+              </Text>
+            </TouchableOpacity>
+
+            {/* Name */}
+            <TouchableOpacity
+              onPress={() => {
+                setSortBy('name');
+                Haptics.selectionAsync();
+              }}
+              className={`flex-row items-center rounded-full px-4 py-2 ${
+                sortBy === 'name'
+                  ? 'bg-blue-500'
+                  : 'border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+              }`}
+            >
+              <TextalignJustifycenter
+                size={16}
+                color={sortBy === 'name' ? 'white' : isDark ? '#9CA3AF' : '#6B7280'}
+              />
+              <Text
+                className={`ml-1 font-visby-bold text-xs ${
+                  sortBy === 'name' ? 'text-white' : 'text-gray-600 dark:text-gray-300'
+                }`}
+              >
+                Name
+              </Text>
+            </TouchableOpacity>
+
+            {/* Cook Time */}
+            <TouchableOpacity
+              onPress={() => {
+                setSortBy('time');
+                Haptics.selectionAsync();
+              }}
+              className={`flex-row items-center rounded-full px-4 py-2 ${
+                sortBy === 'time'
+                  ? 'bg-blue-500'
+                  : 'border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+              }`}
+            >
+              <Timer1
+                size={16}
+                color={sortBy === 'time' ? 'white' : isDark ? '#9CA3AF' : '#6B7280'}
+              />
+              <Text
+                className={`ml-1 font-visby-bold text-xs ${
+                  sortBy === 'time' ? 'text-white' : 'text-gray-600 dark:text-gray-300'
+                }`}
+              >
+                Cook Time
+              </Text>
+            </TouchableOpacity>
+
+            {/* Calories */}
+            <TouchableOpacity
+              onPress={() => {
+                setSortBy('calories');
+                Haptics.selectionAsync();
+              }}
+              className={`flex-row items-center rounded-full px-4 py-2 ${
+                sortBy === 'calories'
+                  ? 'bg-blue-500'
+                  : 'border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+              }`}
+            >
+              <Flash
+                size={16}
+                color={sortBy === 'calories' ? 'white' : isDark ? '#9CA3AF' : '#6B7280'}
+              />
+              <Text
+                className={`ml-1 font-visby-bold text-xs ${
+                  sortBy === 'calories' ? 'text-white' : 'text-gray-600 dark:text-gray-300'
+                }`}
+              >
+                Calories
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Filter By Difficulty */}
@@ -546,21 +643,21 @@ export default function SavedRecipesScreen() {
       <View className="mb-4 flex-row justify-around px-5 pb-2 pt-1">
         <TouchableOpacity onPress={() => router.push('/meal-planner')} className="items-center">
           <View className="mb-1 h-12 w-12 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-900/20">
-            <Ionicons name="calendar-outline" size={24} color="#F97316" />
+            <Calendar size={24} color="#F97316" />
           </View>
           <Text className="font-visby-bold text-xs text-gray-700 dark:text-gray-300">Planner</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/pantry')} className="items-center">
           <View className="mb-1 h-12 w-12 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20">
-            <Ionicons name="basket-outline" size={24} color="#8BD65E" />
+            <Box size={24} color="#8BD65E" />
           </View>
           <Text className="font-visby-bold text-xs text-gray-700 dark:text-gray-300">Pantry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/shopping-list')} className="items-center">
           <View className="mb-1 h-12 w-12 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20">
-            <Ionicons name="cart-outline" size={24} color="#3B82F6" />
+            <ShoppingCart size={24} color="#3B82F6" />
           </View>
           <Text className="font-visby-bold text-xs text-gray-700 dark:text-gray-300">
             Shop List
@@ -572,18 +669,18 @@ export default function SavedRecipesScreen() {
       {showSearch && (
         <View className="px-5 pb-4">
           <View className="h-12 flex-row items-center rounded-xl border border-gray-100 bg-white px-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <Ionicons name="search" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+            <SearchNormal1 size={20} color="#9CA3AF" />
             <TextInput
               placeholder="Search recipes..."
               placeholderTextColor="#9CA3AF"
-              className="h-full flex-1 font-visby text-base text-gray-900 dark:text-white"
+              className="ml-2 h-full flex-1 font-visby text-base text-gray-900 dark:text-white"
               autoFocus
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                <CloseCircle size={18} color="#9CA3AF" />
               </TouchableOpacity>
             )}
           </View>
@@ -615,7 +712,7 @@ export default function SavedRecipesScreen() {
               onPress={() => setCreateCollectionModalVisible(true)}
               className="mb-6 mr-4 aspect-square w-[45%] items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 dark:border-gray-700"
             >
-              <Ionicons name="add" size={40} color={isDark ? '#555' : '#ccc'} />
+              <Add size={40} color={isDark ? '#555' : '#ccc'} />
               <Text className="mt-2 font-visby-bold text-gray-400">New Collection</Text>
             </TouchableOpacity>
           </View>
@@ -698,7 +795,7 @@ export default function SavedRecipesScreen() {
         className="absolute bottom-6 right-6 z-50 h-16 w-16 items-center justify-center rounded-full bg-[#8BD65E] shadow-lg shadow-green-200 dark:shadow-none"
         style={{ elevation: 5 }}
       >
-        <Ionicons name="add" size={36} color="white" />
+        <Add size={36} color="white" />
       </TouchableOpacity>
 
       {/* Toast for error/success notifications */}

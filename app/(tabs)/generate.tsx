@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Recipe } from '@/lib/types';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowRight2, Timer1, Flash, Cake, Activity, Global, Link, CloseCircle, Gallery, Camera, Edit, TickCircle, Diamonds } from 'iconsax-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Image as ExpoImage } from 'expo-image';
@@ -132,31 +132,31 @@ export default function GenerateScreen() {
           onPress={() => (isBrief ? setCurrentRecipe(recipe) : null)}
           className="rounded-full bg-gray-50 p-2"
         >
-          <Ionicons
-            name={isBrief ? 'chevron-forward' : 'checkmark-circle'}
-            size={22}
-            color={isBrief ? '#FF6B6B' : '#8BD65E'}
-          />
+          {isBrief ? (
+            <ArrowRight2 size={22} color="#FF6B6B" variant="Outline" />
+          ) : (
+            <TickCircle size={22} color="#8BD65E" variant="Bold" />
+          )}
         </TouchableOpacity>
       </View>
 
       <View className="mb-6 flex-row space-x-4 border-t border-gray-100 pt-2">
         <View className="items-center">
-          <Ionicons name="time-outline" size={18} color="#666" />
+          <Timer1 size={18} color="#666" variant="Outline" />
           <Text className="mt-1 font-visby text-xs text-gray-500">{recipe.time_minutes} m</Text>
         </View>
         <View className="items-center">
-          <Ionicons name="flame-outline" size={18} color="#666" />
+          <Flash size={18} color="#666" variant="Outline" />
           <Text className="mt-1 font-visby text-xs text-gray-500">
             {recipe.calories_per_serving} kcal
           </Text>
         </View>
         <View className="items-center">
-          <Ionicons name="restaurant-outline" size={18} color="#666" />
+          <Cake size={18} color="#666" variant="Outline" />
           <Text className="mt-1 font-visby text-xs text-gray-500">{recipe.servings} servings</Text>
         </View>
         <View className="items-center">
-          <Ionicons name="barbell-outline" size={18} color="#666" />
+          <Activity size={18} color="#666" variant="Outline" />
           <Text className="mt-1 font-visby text-xs text-gray-500">{recipe.difficulty}</Text>
         </View>
       </View>
@@ -201,12 +201,12 @@ export default function GenerateScreen() {
                     showAlert('Error', 'Failed to publish recipe.');
                   }
                 }}
-                className="mb-4 flex-row items-center justify-center rounded-xl border border-blue-100 bg-blue-50 py-3"
+                className="mb-4 flex-row items-center justify-center rounded-full border border-blue-100 bg-blue-50 py-3"
               >
-                <Ionicons
-                  name="globe-outline"
+                <Global
                   size={18}
                   color="#3B82F6"
+                  variant="Outline"
                   style={{ marginRight: 8 }}
                 />
                 <Text className="font-visby-bold text-blue-600">Publish to Community</Text>
@@ -291,6 +291,26 @@ export default function GenerateScreen() {
       {/* LOADING OVERLAY */}
       {loading && <ChefLoading status={loadingMessage} />}
 
+      {/* AppBar */}
+      <View className="flex-row items-center justify-between bg-white px-4 pb-3 pt-2">
+        <Text className="font-visby-bold text-xl text-[#8BD65E]">Generate Recipe</Text>
+        <TouchableOpacity
+          onPress={async () => {
+            const paywallResult = await RevenueCatUI.presentPaywall();
+            if (
+              paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
+              paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
+            ) {
+              await initialize();
+            }
+          }}
+          className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
+        >
+          <Diamonds size={16} color="white" variant="Bold" />
+          <Text className="font-visby-bold text-sm text-white">Pro</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {/* Header */}
         <View className="mb-8 mt-4">
@@ -329,7 +349,7 @@ export default function GenerateScreen() {
                       onPress={() => removeFile(url)}
                       className="absolute right-1 top-1 rounded-full bg-black/60 p-1"
                     >
-                      <Ionicons name="close" size={10} color="white" />
+                      <CloseCircle size={10} color="white" variant="Bold" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -341,8 +361,8 @@ export default function GenerateScreen() {
           ) : (
             <View className="mb-4 space-y-3">
               {/* URL Input */}
-              <View className="flex-row items-center rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <Ionicons name="link" size={20} color="#9CA3AF" />
+              <View className="flex-row items-center rounded-full border border-gray-100 bg-gray-50 px-4 py-3">
+                <Link size={20} color="#9CA3AF" variant="Outline" />
                 <TextInput
                   placeholder="Paste Instagram/TikTok/YouTube link..."
                   placeholderTextColor="#9CA3AF"
@@ -352,7 +372,7 @@ export default function GenerateScreen() {
                 />
                 {videoUrl.length > 0 && (
                   <TouchableOpacity onPress={() => setVideoUrl('')}>
-                    <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                    <CloseCircle size={18} color="#9CA3AF" variant="Bold" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -363,16 +383,16 @@ export default function GenerateScreen() {
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   onPress={handlePickMedia}
-                  className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 active:bg-gray-100"
+                  className="flex-1 flex-row items-center justify-center gap-2 rounded-full bg-gray-50 py-3 active:bg-gray-100"
                 >
-                  <Ionicons name="images-outline" size={20} color="#666" />
+                  <Gallery size={20} color="#666" variant="Outline" />
                   <Text className="font-visby-bold text-xs text-gray-600">Gallery</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleLaunchCamera}
-                  className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 active:bg-gray-100"
+                  className="flex-1 flex-row items-center justify-center gap-2 rounded-full bg-gray-50 py-3 active:bg-gray-100"
                 >
-                  <Ionicons name="camera-outline" size={20} color="#666" />
+                  <Camera size={20} color="#666" variant="Outline" />
                   <Text className="font-visby-bold text-xs text-gray-600">Camera</Text>
                 </TouchableOpacity>
               </View>
@@ -382,7 +402,7 @@ export default function GenerateScreen() {
           <TouchableOpacity
             onPress={generate}
             disabled={loading || (uploadedFiles.length === 0 && !videoUrl.trim())}
-            className={`w-full flex-row items-center justify-center rounded-2xl py-4 shadow-lg ${
+            className={`w-full flex-row items-center justify-center rounded-full py-4 shadow-lg ${
               loading || (uploadedFiles.length === 0 && !videoUrl.trim())
                 ? 'bg-gray-200 shadow-none'
                 : 'bg-[#8BD65E] shadow-green-200'
@@ -393,7 +413,7 @@ export default function GenerateScreen() {
             ) : (
               <>
                 <Text className="mr-2 font-visby-bold text-base text-white">Generate Recipe</Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
+                <ArrowRight2 size={20} color="white" variant="Bold" />
               </>
             )}
           </TouchableOpacity>
@@ -402,11 +422,11 @@ export default function GenerateScreen() {
         {/* Option 2: Manual Entry */}
         <TouchableOpacity
           onPress={handleStartManual}
-          className="active:scale-98 mb-8 flex-row items-center justify-between rounded-3xl border border-[#8BD65E]/30 bg-[#F0FDF4] p-6 shadow-xl shadow-green-100/50"
+          className="active:scale-98 mb-8 flex-row items-center justify-between rounded-full border border-[#8BD65E]/30 bg-[#F0FDF4] p-6 shadow-xl shadow-green-100/50"
         >
           <View className="flex-1">
             <View className="mb-1 flex-row items-center gap-2">
-              <Ionicons name="create-outline" size={22} color="#8BD65E" />
+              <Edit size={22} color="#8BD65E" variant="Outline" />
               <Text className="font-visby-bold text-lg text-[#8BD65E]">Write Manually</Text>
             </View>
             <Text className="font-visby text-sm text-gray-500">
@@ -414,7 +434,7 @@ export default function GenerateScreen() {
             </Text>
           </View>
           <View className="h-10 w-10 items-center justify-center rounded-full bg-[#8BD65E]/10">
-            <Ionicons name="chevron-forward" size={24} color="#8BD65E" />
+            <ArrowRight2 size={24} color="#8BD65E" variant="Bold" />
           </View>
         </TouchableOpacity>
 

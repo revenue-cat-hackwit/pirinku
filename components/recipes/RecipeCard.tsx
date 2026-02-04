@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Platform, ActionSheetIOS } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger } from 'iconsax-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Danger, Play, Archive, Clock, Flash, Profile2User } from 'iconsax-react-native';
 import { Image } from 'expo-image';
 import { Recipe } from '@/lib/types';
 import { useColorScheme } from 'nativewind';
@@ -142,7 +141,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         {/* Video Indicator */}
         {recipe.sourceUrl?.match(/\.(mp4|mov|webm)(\?.*)?$/i) && (
           <View className="absolute bottom-3 left-3 flex-row items-center rounded-full bg-black/50 px-3 py-1 backdrop-blur-sm">
-            <Ionicons name="play" size={12} color="white" />
+            <Play size={12} color="white" variant="Bold" />
             <Text className="ml-1 font-visby-bold text-xs text-white">Video</Text>
           </View>
         )}
@@ -156,12 +155,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             }}
             className="absolute right-3 top-3 rounded-full bg-white/90 p-2 shadow-sm backdrop-blur-sm dark:bg-black/50"
           >
-            <Ionicons
-              name={
-                recipe.collections && recipe.collections.length > 0
-                  ? 'bookmark'
-                  : 'bookmark-outline'
-              }
+            <Archive
               size={20}
               color={
                 recipe.collections && recipe.collections.length > 0
@@ -169,6 +163,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
                   : isDark
                     ? 'white'
                     : 'black'
+              }
+              variant={
+                recipe.collections && recipe.collections.length > 0 ? 'Bold' : 'Outline'
               }
             />
           </TouchableOpacity>
@@ -192,19 +189,19 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
         <View className="flex-row items-center space-x-4">
           <View className="flex-row items-center">
-            <Ionicons name="time-outline" size={14} color="gray" />
+            <Clock size={14} color="gray" />
             <Text className="ml-1 text-xs text-gray-500 dark:text-gray-400">
               {recipe.time_minutes} min
             </Text>
           </View>
           <View className="flex-row items-center">
-            <Ionicons name="flame-outline" size={14} color="gray" />
+            <Flash size={14} color="gray" />
             <Text className="ml-1 text-xs text-gray-500 dark:text-gray-400">
               {recipe.calories_per_serving} kcal
             </Text>
           </View>
           <View className="flex-row items-center">
-            <Ionicons name="people-outline" size={14} color="gray" />
+            <Profile2User size={14} color="gray" />
             <Text className="ml-1 text-xs text-gray-500 dark:text-gray-400">
               {recipe.servings} serv
             </Text>

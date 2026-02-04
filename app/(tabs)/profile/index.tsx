@@ -3,10 +3,12 @@ import { ProfileService } from '@/lib/services/profileService';
 import { PostService } from '@/lib/services/postService';
 import { ProfileUser } from '@/lib/types/auth';
 import { Post, MyComment } from '@/lib/types/post';
-import { Ionicons } from '@expo/vector-icons';
+import { Setting2, DocumentText, MessageText, Heart, Messages, Diamonds, Home } from 'iconsax-react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback } from 'react';
+import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
+import RevenueCatUI from 'react-native-purchases-ui';
 
 import {
   ScrollView,
@@ -59,13 +61,15 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-type TabType = 'My Posts' | 'Reply' | 'Saved';
+type TabType = 'My Posts' | 'Reply';
 
 export default function Profile() {
   const router = useRouter();
   const token = useAuthStore((state) => state.token);
+  const currentUser = useAuthStore((state) => state.user);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { initialize } = useSubscriptionStore();
 
   // Profile Data from API
   const [profileData, setProfileData] = useState<ProfileUser | null>(null);
@@ -108,15 +112,13 @@ export default function Profile() {
 
       if (tab === 'My Posts') {
         const response = await PostService.getPosts();
-        // Filter posts by current user
-        const userPosts = response.data.posts.filter((post) => post.user.id === profileData?.id);
+        // Filter posts by current user - use profileData ID or currentUser ID
+        const userId = profileData?.id || currentUser?.id;
+        const userPosts = response.data.posts.filter((post) => post.user.id === userId);
         setMyPosts(userPosts);
       } else if (tab === 'Reply') {
         const response = await PostService.getMyComments();
         setMyComments(response.data.comments);
-      } else if (tab === 'Saved') {
-        const response = await PostService.getSavedPosts();
-        setSavedPosts(response.data.posts);
       }
     } catch (error: any) {
       console.error('Failed to fetch tab data:', error);
@@ -167,13 +169,13 @@ export default function Profile() {
 
       <View className="flex-row items-center gap-4">
         <View className="flex-row items-center gap-1">
-          <Ionicons name="heart-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
+          <Heart size={18} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Outline" />
           <Text className="font-visby text-xs text-gray-600 dark:text-gray-400">
             {item.likesCount}
           </Text>
         </View>
         <View className="flex-row items-center gap-1">
-          <Ionicons name="chatbubble-outline" size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
+          <Messages size={18} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Outline" />
           <Text className="font-visby text-xs text-gray-600 dark:text-gray-400">
             {item.commentsCount}
           </Text>
@@ -218,7 +220,7 @@ export default function Profile() {
       if (myPosts.length === 0) {
         return (
           <View className="items-center py-12">
-            <Ionicons name="document-text-outline" size={48} color="#9CA3AF" />
+            <DocumentText size={48} color="#9CA3AF" variant="Outline" />
             <Text className="mt-3 font-visby text-gray-500 dark:text-gray-400">No posts yet</Text>
           </View>
         );
@@ -237,7 +239,7 @@ export default function Profile() {
       if (myComments.length === 0) {
         return (
           <View className="items-center py-12">
-            <Ionicons name="chatbubbles-outline" size={48} color="#9CA3AF" />
+            <MessageText size={48} color="#9CA3AF" variant="Outline" />
             <Text className="mt-3 font-visby text-gray-500 dark:text-gray-400">
               No comments yet
             </Text>
@@ -254,27 +256,6 @@ export default function Profile() {
       );
     }
 
-    if (activeTab === 'Saved') {
-      if (savedPosts.length === 0) {
-        return (
-          <View className="items-center py-12">
-            <Ionicons name="bookmark-outline" size={48} color="#9CA3AF" />
-            <Text className="mt-3 font-visby text-gray-500 dark:text-gray-400">
-              No saved posts yet
-            </Text>
-          </View>
-        );
-      }
-      return (
-        <FlatList
-          data={savedPosts}
-          renderItem={renderPostItem}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-        />
-      );
-    }
-
     return null;
   };
 
@@ -282,14 +263,29 @@ export default function Profile() {
     <SafeAreaView className="flex-1 bg-white dark:bg-[#0F0F0F]" edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="bg-white px-4 pt-2 dark:bg-[#0F0F0F]">
-          {/* Header */}
+          {/* AppBar */}
           <View className="mb-6 flex-row items-center justify-between">
-            <Text className="flex-1 pt-1 font-visby-bold text-xl text-black dark:text-white">
-              Profile
-            </Text>
-            <TouchableOpacity onPress={() => router.push('/settings')}>
-              <Ionicons name="settings-outline" size={26} color={isDark ? 'white' : 'black'} />
-            </TouchableOpacity>
+            <Text className="font-visby-bold text-xl text-[#8BD65E]">Profile</Text>
+            <View className="flex-row items-center gap-2">
+              <TouchableOpacity
+                onPress={async () => {
+                  const paywallResult = await RevenueCatUI.presentPaywall();
+                  if (
+                    paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
+                    paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
+                  ) {
+                    await initialize();
+                  }
+                }}
+                className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
+              >
+                <Diamonds size={16} color="white" variant="Bold" />
+                <Text className="font-visby-bold text-sm text-white">Pro</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/settings')}>
+                <Setting2 size={24} color={isDark ? 'white' : 'black'} variant="Outline" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Profile Info */}
@@ -343,18 +339,12 @@ export default function Profile() {
           </View>
 
           {/* Action Buttons */}
-          <View className="mb-6 flex-row justify-center space-x-3">
+          <View className="mb-6 flex-row justify-center">
             <TouchableOpacity
               onPress={() => router.push('/edit-profile')}
-              className="mr-2 flex-1 items-center rounded-lg bg-[#8BD65E] px-8 py-2.5"
+              className="flex-1 items-center rounded-full bg-[#8BD65E] px-8 py-2.5"
             >
               <Text className="font-visby-bold text-base text-white">Edit Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push('/pantry')}
-              className="w-12 items-center justify-center rounded-lg bg-[#8BD65E] p-2.5"
-            >
-              <Ionicons name="nutrition-outline" size={20} color="white" />
             </TouchableOpacity>
           </View>
 
@@ -367,7 +357,7 @@ export default function Profile() {
 
           {/* Tabs */}
           <View className="mb-4 flex-row border-b border-gray-100 dark:border-gray-800">
-            {(['My Posts', 'Reply', 'Saved'] as TabType[]).map((tab) => (
+            {(['My Posts', 'Reply'] as TabType[]).map((tab) => (
               <TouchableOpacity
                 key={tab}
                 onPress={() => setActiveTab(tab)}

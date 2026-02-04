@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { CloseCircle, Add, ArrowRight, FolderOpen, TickCircle } from 'iconsax-react-native';
 import { useColorScheme } from 'nativewind';
 import { Recipe } from '@/lib/types';
 
@@ -57,7 +57,7 @@ export const CollectionSelectorModal: React.FC<CollectionSelectorModalProps> = (
                 Add to Collection
               </Text>
               <TouchableOpacity onPress={onClose}>
-                <Ionicons name="close" size={24} color={isDark ? 'white' : 'black'} />
+                <CloseCircle size={24} color={isDark ? 'white' : 'black'} />
               </TouchableOpacity>
             </View>
 
@@ -69,7 +69,7 @@ export const CollectionSelectorModal: React.FC<CollectionSelectorModalProps> = (
                   className="mb-3 flex-row items-center rounded-xl border-2 border-dashed border-gray-300 bg-transparent p-4 dark:border-gray-700"
                 >
                   <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                    <Ionicons name="add" size={24} color={isDark ? 'white' : 'black'} />
+                    <Add size={24} color={isDark ? 'white' : 'black'} />
                   </View>
                   <Text className="font-visby-bold text-base text-gray-500 dark:text-gray-400">
                     New Collection
@@ -93,8 +93,7 @@ export const CollectionSelectorModal: React.FC<CollectionSelectorModalProps> = (
                     className={`items-center justify-center rounded-xl p-4 ${newCollectionName.trim() ? 'bg-black dark:bg-white' : 'bg-gray-300 dark:bg-gray-700'}`}
                     disabled={!newCollectionName.trim()}
                   >
-                    <Ionicons
-                      name="arrow-forward"
+                    <ArrowRight
                       size={24}
                       color={newCollectionName.trim() ? (isDark ? 'black' : 'white') : '#888'}
                     />
@@ -106,7 +105,7 @@ export const CollectionSelectorModal: React.FC<CollectionSelectorModalProps> = (
                     }}
                     className="items-center justify-center rounded-xl bg-gray-200 p-4 dark:bg-gray-800"
                   >
-                    <Ionicons name="close" size={24} color={isDark ? 'white' : 'black'} />
+                    <CloseCircle size={24} color={isDark ? 'white' : 'black'} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -125,13 +124,13 @@ export const CollectionSelectorModal: React.FC<CollectionSelectorModalProps> = (
                     >
                       <View className="flex-row items-center">
                         <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-                          <Ionicons name="folder-open" size={20} color="#F97316" />
+                          <FolderOpen size={20} color="#F97316" />
                         </View>
                         <Text className="font-visby-bold text-base text-gray-800 dark:text-gray-200">
                           {name}
                         </Text>
                       </View>
-                      {isSelected && <Ionicons name="checkmark-circle" size={24} color="#8BD65E" />}
+                      {isSelected && <TickCircle size={24} color="#8BD65E" variant="Bold" />}
                     </TouchableOpacity>
                   );
                 })

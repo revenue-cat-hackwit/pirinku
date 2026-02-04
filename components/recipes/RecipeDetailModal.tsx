@@ -10,8 +10,7 @@ import {
   Linking,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger, TickCircle } from 'iconsax-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Danger, TickCircle, CloseCircle, Play, Camera, MagicStar, Gallery, Add, ShoppingCart, Trash, Apple, Lamp, FolderOpen, Share, Edit2, Clock, Flash, Profile2User, Calculator, PlayCircle } from 'iconsax-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -369,7 +368,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                     onPress={handleSaveEdit}
                     className="flex-row items-center gap-2 rounded-full bg-[#8BD65E] px-5 py-2 shadow-lg shadow-green-200"
                   >
-                    <Ionicons name="checkmark-circle" size={18} color="white" />
+                    <TickCircle size={18} color="white" variant="Bold" />
                     <Text className="font-visby-bold text-sm text-white">Save</Text>
                   </TouchableOpacity>
                 </View>
@@ -383,7 +382,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                   }}
                   className="rounded-full bg-gray-100 p-2 dark:bg-gray-800"
                 >
-                  <Ionicons name="close" size={24} color={isDark ? 'white' : 'black'} />
+                  <CloseCircle size={24} color={isDark ? 'white' : 'black'} />
                 </TouchableOpacity>
               </View>
             )}
@@ -430,7 +429,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           <View className="absolute inset-0 bg-red-600/20" />
                         )}
                         <View className="items-center justify-center rounded-full bg-white/20 p-4 backdrop-blur-md">
-                          <Ionicons name="play" size={40} color="white" />
+                          <Play size={40} color="white" variant="Bold" />
                         </View>
                         <Text className="mt-2 font-visby-bold text-white shadow-md">
                           Watch Original Video
@@ -447,7 +446,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                         ) : (
                           <View className="h-full w-full items-center justify-center border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
                             <View className="items-center">
-                              <Ionicons name="camera-outline" size={48} color="#9CA3AF" />
+                              <Camera size={48} color="#9CA3AF" />
                               <Text className="mt-2 font-visby-bold text-sm text-gray-400 dark:text-gray-500">
                                 Tap to Add Cover Photo
                               </Text>
@@ -457,7 +456,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
 
                         {isEditing && displayRecipe.imageUrl && (
                           <View className="absolute inset-0 items-center justify-center bg-black/30">
-                            <Ionicons name="camera" size={30} color="white" />
+                            <Camera size={30} color="white" />
                             <Text className="mt-1 font-visby-bold text-xs text-white">
                               Change Photo
                             </Text>
@@ -482,8 +481,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                       onPress={() => setShowCollectionSelector(true)}
                       className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
                     >
-                      <Ionicons
-                        name="folder-open-outline"
+                      <FolderOpen
                         size={20}
                         color={isDark ? 'white' : 'black'}
                       />
@@ -497,8 +495,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                       onPress={() => onShare(displayRecipe)}
                       className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
                     >
-                      <Ionicons
-                        name="share-social-outline"
+                      <Share
                         size={20}
                         color={isDark ? 'white' : 'black'}
                       />
@@ -512,8 +509,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                       onPress={handleStartEdit}
                       className="flex-row items-center rounded-xl bg-gray-100 px-4 py-3 dark:bg-gray-800"
                     >
-                      <Ionicons
-                        name="pencil-outline"
+                      <Edit2
                         size={20}
                         color={isDark ? 'white' : 'black'}
                       />
@@ -652,7 +648,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           ) : (
                             <>
                               <View className="h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                                <Ionicons name="sparkles" size={18} color="white" />
+                                <MagicStar size={18} color="white" variant="Bold" />
                               </View>
                               <Text className="font-visby-bold text-base text-white">
                                 Generate with AI
@@ -666,7 +662,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           onPress={pickImage}
                           className="flex-row items-center justify-center gap-2 rounded-xl border-2 border-gray-200 bg-white py-3 active:bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
                         >
-                          <Ionicons name="images-outline" size={18} color="#6B7280" />
+                          <Gallery size={18} color="#6B7280" />
                           <Text className="font-visby-bold text-sm text-gray-700 dark:text-gray-300">
                             Add Photo
                           </Text>
@@ -744,11 +740,9 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                   }}
                   className="mb-2 flex-row items-center justify-center rounded-lg bg-indigo-50 py-2 dark:bg-indigo-900/20"
                 >
-                  <Ionicons
-                    name="calculator-outline"
+                  <Calculator
                     size={16}
                     color="#4F46E5"
-                    style={{ marginRight: 6 }}
                   />
                   <Text className="font-visby-bold text-xs text-indigo-600 dark:text-indigo-400">
                     Auto-Calculate Nutrition (AI)
@@ -840,7 +834,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           <Text className="mr-1 text-sm text-green-600 dark:text-green-400">
                             {name}
                           </Text>
-                          <Ionicons name="close" size={12} color="#8BD65E" />
+                          <CloseCircle size={12} color="#8BD65E" />
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -873,7 +867,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           )
                         }
                       >
-                        <Ionicons name="add" size={20} color={isDark ? 'white' : 'black'} />
+                        <Add size={20} color={isDark ? 'white' : 'black'} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -914,8 +908,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                       : 'bg-gray-900 dark:bg-white'
                   }`}
                 >
-                  <Ionicons
-                    name="play-circle"
+                  <PlayCircle
                     size={24}
                     color={
                       !displayRecipe.steps || displayRecipe.steps.length === 0
@@ -924,7 +917,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                           ? 'black'
                           : 'white'
                     }
-                    style={{ marginRight: 8 }}
+                    variant="Bold"
                   />
                   <Text
                     className={`font-visby-bold text-base ${
@@ -943,7 +936,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                 <View className="mb-4 flex-row items-center justify-between">
                   <View className="flex-row items-center gap-3">
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-[#8BD65E]/10">
-                      <Ionicons name="cart-outline" size={22} color="#8BD65E" />
+                      <ShoppingCart size={22} color="#8BD65E" />
                     </View>
                     <Text className="font-visby-bold text-xl text-gray-900 dark:text-white">
                       Ingredients
@@ -984,7 +977,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                             }}
                             className="rounded-full bg-red-50 p-1 dark:bg-red-900/20"
                           >
-                            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                            <Trash size={16} color="#EF4444" />
                           </TouchableOpacity>
                         </View>
                         <TextInput
@@ -1071,7 +1064,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                     className="mt-2 flex-row items-center justify-center rounded-xl border-2 border-[#8BD65E] bg-[#8BD65E]/5 py-4 active:bg-[#8BD65E]/10"
                   >
                     <View className="mr-2 h-6 w-6 items-center justify-center rounded-full bg-[#8BD65E]">
-                      <Ionicons name="add" size={16} color="white" />
+                      <Add size={16} color="white" />
                     </View>
                     <Text className="font-visby-bold text-sm text-[#8BD65E]">
                       Add Another Ingredient
@@ -1086,7 +1079,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                 onGenerateFull && (
                   <View className="mb-6 rounded-xl bg-orange-50 p-4 dark:bg-orange-900/20">
                     <View className="mb-2 flex-row items-center justify-center gap-2">
-                      <Ionicons name="sparkles" size={20} color={isDark ? '#FB923C' : '#EA580C'} />
+                      <MagicStar size={20} color={isDark ? '#FB923C' : '#EA580C'} variant="Bold" />
                       <Text className="font-visby-bold text-lg text-orange-600 dark:text-orange-400">
                         Incomplete Recipe
                       </Text>
@@ -1107,13 +1100,12 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                         </>
                       ) : (
                         <>
-                          <Ionicons
-                            name="sparkles"
+                          <MagicStar
                             size={20}
                             color="white"
-                            style={{ marginRight: 8 }}
+                            variant="Bold"
                           />
-                          <Text className="font-visby-bold text-white">Generate Full Detail</Text>
+                          <Text className="ml-2 font-visby-bold text-white">Generate Full Detail</Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -1124,7 +1116,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
               <View className="mb-8">
                 <View className="mb-4 flex-row items-center gap-3">
                   <View className="h-10 w-10 items-center justify-center rounded-full bg-orange-500/10">
-                    <Ionicons name="restaurant-outline" size={22} color="#F97316" />
+                    <Apple size={22} color="#F97316" />
                   </View>
                   <Text className="font-visby-bold text-xl text-gray-900 dark:text-white">
                     Cooking Instructions
@@ -1161,7 +1153,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                             }}
                             className="rounded-full bg-red-50 p-1 dark:bg-red-900/20"
                           >
-                            <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                            <Trash size={16} color="#EF4444" />
                           </TouchableOpacity>
                         </View>
                         <TextInput
@@ -1218,7 +1210,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                     className="mt-2 flex-row items-center justify-center rounded-xl border-2 border-orange-500 bg-orange-500/5 py-4 active:bg-orange-500/10"
                   >
                     <View className="mr-2 h-6 w-6 items-center justify-center rounded-full bg-orange-500">
-                      <Ionicons name="add" size={16} color="white" />
+                      <Add size={16} color="white" />
                     </View>
                     <Text className="font-visby-bold text-sm text-orange-500">Add Next Step</Text>
                   </TouchableOpacity>
@@ -1230,7 +1222,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                 <View className="mb-8 overflow-hidden rounded-2xl border border-yellow-200 bg-gradient-to-br from-yellow-50 to-amber-50 dark:border-yellow-900/30 dark:from-yellow-900/10 dark:to-amber-900/10">
                   <View className="flex-row items-center gap-3 border-b border-yellow-200 bg-yellow-500/10 px-4 py-3 dark:border-yellow-900/30 dark:bg-yellow-500/5">
                     <View className="h-8 w-8 items-center justify-center rounded-full bg-yellow-500/20">
-                      <Ionicons name="bulb" size={18} color="#EAB308" />
+                      <Lamp size={18} color="#EAB308" />
                     </View>
                     <Text className="flex-1 font-visby-bold text-base text-gray-900 dark:text-white">
                       Chef&apos;s Pro Tips
@@ -1282,11 +1274,9 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
                   }}
                   className="mb-8 flex-row items-center justify-center rounded-xl border border-red-100 bg-red-50 py-4 dark:border-red-900/30 dark:bg-red-900/20"
                 >
-                  <Ionicons
-                    name="trash-outline"
+                  <Trash
                     size={20}
                     color="#EF4444"
-                    style={{ marginRight: 8 }}
                   />
                   <Text className="font-visby-bold text-red-500">Delete Recipe</Text>
                 </TouchableOpacity>

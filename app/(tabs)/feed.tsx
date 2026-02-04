@@ -12,12 +12,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PostService } from '@/lib/services/postService';
 import { Post, CurrentUser } from '@/lib/types/post';
 import { FeedPostCard } from '@/components/feed/FeedPostCard';
-import { Ionicons } from '@expo/vector-icons';
+import { PostCommentsModal } from '@/components/feed/PostCommentsModal';
+import { CreatePostModal } from '@/components/feed/CreatePostModal';
+import { Notification, Setting2, Danger, DocumentText, Refresh, MagicStar, Add, Diamonds } from 'iconsax-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import RevenueCatUI from 'react-native-purchases-ui';
+import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
 
 export default function Feed() {
   const router = useRouter();
+  const { initialize } = useSubscriptionStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,6 +30,9 @@ export default function Feed() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [createPostModalVisible, setCreatePostModalVisible] = useState(false);
 
   const fetchFeeds = async (pageNum: number = 1, isRefresh: boolean = false) => {
     try {
@@ -74,23 +82,54 @@ export default function Feed() {
   }, [loading, hasMore, page]);
 
   const handleLike = async (postId: string) => {
+    // Store previous state for rollback
+    const previousPosts = [...posts];
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+
     // Optimistic update
     setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
+      prev.map((p) =>
+        p.id === postId
           ? {
-              ...post,
-              isLiked: !post.isLiked,
-              likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1,
+              ...p,
+              isLiked: !p.isLiked,
+              likesCount: p.isLiked ? p.likesCount - 1 : p.likesCount + 1,
             }
-          : post,
+          : p,
       ),
     );
+
+    // Call API
+    try {
+      await PostService.likePost(postId);
+    } catch (error) {
+      // Rollback on error
+      setPosts(previousPosts);
+      console.error('Error liking post:', error);
+      // Optional: Show error toast to user
+    }
   };
 
   const handleComment = (postId: string) => {
-    // TODO: Navigate to post detail or open comment modal
-    console.log('Comment on post:', postId);
+    setSelectedPostId(postId);
+    setCommentModalVisible(true);
+  };
+
+  const handleCommentAdded = () => {
+    // Refresh the feed to get updated comment counts
+    fetchFeeds(1, true);
+  };
+
+  const handleCreatePost = async (content: string, imageUrl?: string) => {
+    try {
+      await PostService.createPost(content, imageUrl);
+      // Refresh the feed to show the new post
+      fetchFeeds(1, true);
+    } catch (error) {
+      console.error('Error creating post:', error);
+      throw error;
+    }
   };
 
   const handlePostPress = (postId: string) => {
@@ -99,7 +138,7 @@ export default function Feed() {
   };
 
   const handleGenerateRecipe = () => {
-    router.push('/(tabs)/chat');
+    router.push('/(tabs)/generate');
   };
 
   if (loading && posts.length === 0) {
@@ -119,7 +158,7 @@ export default function Feed() {
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-[#0F0F0F]">
         <View className="flex-1 items-center justify-center px-6">
-          <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
+          <Danger size={64} color="#EF4444" variant="Outline" />
           <Text className="mt-4 text-center font-visby-bold text-lg text-gray-900 dark:text-white">
             failed loading Feeds
           </Text>
@@ -128,9 +167,10 @@ export default function Feed() {
           </Text>
           <TouchableOpacity
             onPress={() => fetchFeeds(1)}
-            className="mt-6 rounded-full bg-[#8BC34A] px-6 py-3"
+            className="mt-6 rounded-full bg-[#8BC34A] px-6 py-3 flex-row items-center gap-2"
             activeOpacity={0.8}
           >
+            <Refresh size={20} color="#FFFFFF" variant="Outline" />
             <Text className="font-visby-demibold text-white">Coba Lagi</Text>
           </TouchableOpacity>
         </View>
@@ -164,6 +204,44 @@ export default function Feed() {
         onEndReachedThreshold={0.5}
         ListHeaderComponent={
           <>
+            {/* AppBar */}
+            <SafeAreaView edges={['top']}>
+              <View className="flex-row items-center justify-between bg-white px-4 pb-3 pt-2">
+                <Text className="font-visby-bold text-xl text-[#8BD65E]">Feed</Text>
+                <View className="flex-row items-center gap-3">
+                  <TouchableOpacity
+                    className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
+                    activeOpacity={0.7}
+                    onPress={() => router.push('/notifications')}
+                  >
+                    <Notification size={20} color="#666" variant="Outline" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
+                    activeOpacity={0.7}
+                    onPress={() => router.push('/settings')}
+                  >
+                    <Setting2 size={20} color="#666" variant="Outline" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      const paywallResult = await RevenueCatUI.presentPaywall();
+                      if (
+                        paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
+                        paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
+                      ) {
+                        await initialize();
+                      }
+                    }}
+                    className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
+                  >
+                    <Diamonds size={16} color="white" variant="Bold" />
+                    <Text className="font-visby-bold text-sm text-white">Pro</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </SafeAreaView>
+
             {/* Background Section with fixed height */}
             <View
               style={{
@@ -176,57 +254,43 @@ export default function Feed() {
                 paddingRight: 0,
               }}
             >
-              <SafeAreaView edges={['top']}>
-                <View className="pt-2">
-                  {/* Top Bar: Welcome, Notifications, Settings */}
-                  {currentUser && (
-                    <View className="mb-4 flex-row items-center justify-between px-4">
-                      {/* Welcome Section */}
-                      <View className="flex-1 flex-row items-center">
-                        <View className="mr-3 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                          <Image
-                            source={{
-                              uri:
-                                currentUser.avatar ||
-                                `https://ui-avatars.com/api/?name=${currentUser.fullName}&background=random`,
-                            }}
-                            style={{ width: 48, height: 48 }}
-                            contentFit="cover"
-                          />
-                        </View>
-                        <View>
-                          <Text className="font-visby text-xs text-gray-700">Welcome</Text>
-                          <Text className="font-visby-bold text-base text-gray-900">
-                            {currentUser.fullName}
-                          </Text>
-                        </View>
+              <View>
+                {/* Top Bar: Welcome Section */}
+                {currentUser && (
+                  <View className="px-4">
+                    {/* Welcome Section */}
+                    <TouchableOpacity
+                      className="flex-row items-center"
+                      activeOpacity={0.7}
+                      onPress={() => router.push('/(tabs)/profile')}
+                    >
+                      <View className="mr-3 h-12 w-12 overflow-hidden rounded-full bg-gray-200">
+                        <Image
+                          source={{
+                            uri:
+                              currentUser.avatar ||
+                              `https://ui-avatars.com/api/?name=${currentUser.fullName}&background=random`,
+                          }}
+                          style={{ width: 48, height: 48 }}
+                          contentFit="cover"
+                        />
                       </View>
-
-                      {/* Icons: Notifications & Settings */}
-                      <View className="flex-row items-center gap-3">
-                        <TouchableOpacity
-                          className="h-10 w-10 items-center justify-center rounded-full bg-[#8BC34A]"
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          className="h-10 w-10 items-center justify-center rounded-full bg-[#8BC34A]"
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
-                        </TouchableOpacity>
+                      <View>
+                        <Text className="font-visby text-xs text-gray-700">Welcome</Text>
+                        <Text className="font-visby-bold text-base text-gray-900">
+                          {currentUser.fullName}
+                        </Text>
                       </View>
-                    </View>
-                  )}
-                </View>
-              </SafeAreaView>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
 
             {/* Generate Your Recipe Card - extends below background */}
             <View
               style={{
-                marginTop: -60,
+                marginTop: -80,
                 paddingHorizontal: 16,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
@@ -235,7 +299,11 @@ export default function Feed() {
                 elevation: 5,
               }}
             >
-              <TouchableOpacity onPress={handleGenerateRecipe} activeOpacity={0.8}>
+              <TouchableOpacity
+                onPress={handleGenerateRecipe}
+                activeOpacity={0.8}
+                className="overflow-hidden rounded-3xl border border-black/15"
+              >
                 <Image
                   source={{
                     uri: 'https://pxhoqlzgkyflqlaixzkv.supabase.co/storage/v1/object/public/images/dashboardopening.svg',
@@ -252,16 +320,13 @@ export default function Feed() {
                 style={{
                   backgroundColor: 'white',
                   borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: '#9AEE68',
-                  padding: 16,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
+                  // shadowColor: '#000',
+                  // shadowOffset: { width: 0, height: 2 },
+                  // shadowOpacity: 0.1,
+                  // shadowRadius: 4,
+                  // elevation: 3,
                 }}
               >
                 {/* Cooki Avatar */}
@@ -298,11 +363,15 @@ export default function Feed() {
                       backgroundColor: '#8BD65E',
                       paddingHorizontal: 16,
                       paddingVertical: 8,
-                      borderRadius: 10,
+                      borderRadius: 9999,
                       alignSelf: 'flex-start',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
                     }}
                     activeOpacity={0.8}
                   >
+                    <MagicStar size={20} color="#FFFFFF" variant="Bold" />
                     <Text className="font-visby-demibold text-lg text-white">Let&apos;s Try</Text>
                   </TouchableOpacity>
                 </View>
@@ -313,11 +382,11 @@ export default function Feed() {
             <View className="mb-4 mt-6 px-4">
               <View className="flex-row items-center justify-between">
                 <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
-                  New post
+                  Your Feed
                 </Text>
-                <TouchableOpacity>
+                {/* <TouchableOpacity>
                   <Text className="font-visby text-sm text-[#8BC34A]">See All</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
           </>
@@ -332,7 +401,7 @@ export default function Feed() {
         }
         ListEmptyComponent={
           <View className="items-center justify-center px-4 py-20">
-            <Ionicons name="document-text-outline" size={64} color="#9CA3AF" />
+            <DocumentText size={64} color="#9CA3AF" variant="Outline" />
             <Text className="mt-4 font-visby-bold text-lg text-gray-900 dark:text-white">
               Belum Ada Post
             </Text>
@@ -341,6 +410,37 @@ export default function Feed() {
             </Text>
           </View>
         }
+      />
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        onPress={() => setCreatePostModalVisible(true)}
+        className="absolute bottom-6 right-6 flex-row items-center gap-2 rounded-full bg-[#8BC34A] px-5 py-4 shadow-lg shadow-black/25"
+        activeOpacity={0.8}
+        style={{
+          elevation: 8,
+        }}
+      >
+        <Add size={24} color="white" variant="Bold" />
+        <Text className="font-visby-bold text-base text-white">New Post</Text>
+      </TouchableOpacity>
+
+      {/* Post Comments Modal */}
+      <PostCommentsModal
+        visible={commentModalVisible}
+        onClose={() => {
+          setCommentModalVisible(false);
+          setSelectedPostId(null);
+        }}
+        postId={selectedPostId}
+        onCommentAdded={handleCommentAdded}
+      />
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        visible={createPostModalVisible}
+        onClose={() => setCreatePostModalVisible(false)}
+        onSubmit={handleCreatePost}
       />
     </View>
   );
