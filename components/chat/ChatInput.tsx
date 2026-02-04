@@ -233,88 +233,108 @@ export const ChatInput = React.memo(
 
     // RENDER: Recording State (Themed & Visualizer)
     if (isRecording) {
-      return (
-        <View
-          style={{
-            marginHorizontal: 16,
-            marginBottom: 24,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderRadius: 9999,
-            backgroundColor: '#1E1F20',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 4,
-            elevation: 10,
-          }}
-        >
-          {/* Left: Delete/Cancel */}
-          <TouchableOpacity
-            onPress={cancelRecording}
-            style={{
-              height: 40,
-              width: 40,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 9999,
-              backgroundColor: '#2A2B2C',
-            }}
-          >
-            <Ionicons name="trash-outline" size={20} color="#FF5A5F" />
-          </TouchableOpacity>
-
-          {/* Center: Waveform Visualizer */}
+      // RENDER: Recording State (Themed & Visualizer)
+      if (isRecording) {
+        return (
           <View
             style={{
-              marginHorizontal: 12,
-              height: 40,
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 2,
-              overflow: 'hidden',
+              marginHorizontal: 16,
+              marginBottom: 24,
+              backgroundColor: '#1E1F20',
+              borderRadius: 32,
+              paddingVertical: 16,
+              paddingHorizontal: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 10,
             }}
           >
-            {visualizerBars.map((level, i) => {
-              // dynamic height based on sound level
-              // min height 4, max 32
-              const height = 4 + level * 36;
-              return (
-                <View
-                  key={i}
-                  style={{
-                    width: 3,
-                    borderRadius: 9999,
-                    backgroundColor: '#8BD65E',
-                    height: Math.min(32, height),
-                    opacity: 0.6 + level * 0.4, // brighten when loud
-                  }}
-                />
-              );
-            })}
-          </View>
+            <Text
+              style={{
+                textAlign: 'center',
+                marginBottom: 12,
+                fontFamily: 'VisbyRoundCF-Bold',
+                fontSize: 14,
+                color: '#9CA3AF', // lighter gray for inside dark card
+              }}
+            >
+              Listening...
+            </Text>
 
-          {/* Right: Send/Done */}
-          <TouchableOpacity
-            onPress={stopRecordingAndSend}
-            style={{
-              height: 40,
-              width: 40,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 9999,
-              backgroundColor: 'white',
-            }}
-          >
-            <Ionicons name="arrow-up" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
-      );
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              {/* Left: Delete/Cancel */}
+              <TouchableOpacity
+                onPress={cancelRecording}
+                style={{
+                  height: 48,
+                  width: 48,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 9999,
+                  backgroundColor: '#2A2B2C',
+                }}
+              >
+                <Ionicons name="trash-outline" size={24} color="#FF5A5F" />
+              </TouchableOpacity>
+
+              {/* Center: Waveform Visualizer */}
+              <View
+                style={{
+                  marginHorizontal: 12,
+                  height: 40,
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  overflow: 'hidden',
+                }}
+              >
+                {visualizerBars.map((level, i) => {
+                  // dynamic height based on sound level
+                  // min height 4, max 32
+                  const height = 4 + level * 36;
+                  return (
+                    <View
+                      key={i}
+                      style={{
+                        width: 4,
+                        borderRadius: 9999,
+                        backgroundColor: '#8BD65E',
+                        height: Math.min(32, height),
+                        opacity: 0.6 + level * 0.4, // brighten when loud
+                      }}
+                    />
+                  );
+                })}
+              </View>
+
+              {/* Right: Send/Done */}
+              <TouchableOpacity
+                onPress={stopRecordingAndSend}
+                style={{
+                  height: 48,
+                  width: 48,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 9999,
+                  backgroundColor: 'white',
+                }}
+              >
+                <Ionicons name="arrow-up" size={28} color="black" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      }
     }
 
     // RENDER: Normal Input State
