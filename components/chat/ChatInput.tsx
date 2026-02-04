@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Text,
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { VoiceService } from '@/lib/services/voiceService';
 import { useSettingsStore } from '@/lib/store/settingsStore';
+import { showAlert } from '@/lib/utils/globalAlert';
 
 interface ChatInputProps {
   value: string;
@@ -54,21 +54,31 @@ export const ChatInput = ({
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== 'granted') {
-        const { Alert } = require('react-native'); // Safety import
-        Alert.alert('Permission needed', 'Please allow microphone access to use voice chat.');
+        showAlert('Permission needed', 'Please allow microphone access to use voice chat.');
         return;
       }
 
-      // Safety cleanup
+      // Safety cleanup - ensure any existing recording is fully cleaned up
       if (recording) {
         try {
           await recording.stopAndUnloadAsync();
         } catch (e) {
-          // ignore
+          console.log('Cleanup error (ignoring):', e);
         }
-        setRecording(null);
+      }
+      setRecording(null);
+
+      // Reset audio mode first to ensure clean state
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+        });
+      } catch (e) {
+        console.log('Audio mode reset error (ignoring):', e);
       }
 
+      // Now set to recording mode
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -102,8 +112,7 @@ export const ChatInput = ({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (err) {
       console.error('Failed to start recording', err);
-      const { Alert } = require('react-native');
-      Alert.alert('Error', 'Failed to start recording');
+      showAlert('Error', 'Failed to start recording');
     }
   }
 
@@ -120,6 +129,12 @@ export const ChatInput = ({
       const uri = recording.getURI();
       setRecording(null);
 
+      // Reset audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
+
       if (uri) {
         // Process Audio
         const res = await VoiceService.processAudio(uri, { language }, true);
@@ -130,8 +145,7 @@ export const ChatInput = ({
       }
     } catch (error) {
       console.error('Failed to stop/process recording', error);
-      const { Alert } = require('react-native');
-      Alert.alert('Error', 'Failed to process audio');
+      showAlert('Error', 'Failed to process audio');
     } finally {
       setIsProcessing(false);
     }
@@ -143,10 +157,16 @@ export const ChatInput = ({
     setVisualizerBars(new Array(20).fill(0.2)); // Reset bars
     try {
       await recording.stopAndUnloadAsync();
+      setRecording(null);
+
+      // Reset audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
     } catch (e) {
-      // ignore
+      console.log('Cancel recording error:', e);
     }
-    setRecording(null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   }
 
@@ -154,15 +174,39 @@ export const ChatInput = ({
   if (isProcessing) {
     return (
       <View
-        className="mx-4 mb-6 flex-row items-center justify-between rounded-full bg-[#1E1F20] px-4 py-3 shadow-xl"
-        style={{ elevation: 10 }}
+        style={{
+          marginHorizontal: 16,
+          marginBottom: 24,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderRadius: 9999,
+          backgroundColor: '#1E1F20',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+          elevation: 10,
+        }}
       >
-        <View className="h-10 w-10 opacity-0" />
-        <View className="flex-1 flex-row items-center justify-center gap-2">
+        <View style={{ height: 40, width: 40, opacity: 0 }} />
+        <View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}
+        >
           <ActivityIndicator color="#8BD65E" size="small" />
-          <Text className="font-visby text-xs text-gray-400">Processing audio...</Text>
+          <Text style={{ fontFamily: 'VisbyRoundCF-Regular', fontSize: 12, color: '#9CA3AF' }}>
+            Processing audio...
+          </Text>
         </View>
-        <View className="h-10 w-10 opacity-0" />
+        <View style={{ height: 40, width: 40, opacity: 0 }} />
       </View>
     );
   }
@@ -171,19 +215,51 @@ export const ChatInput = ({
   if (isRecording) {
     return (
       <View
-        className="mx-4 mb-6 flex-row items-center justify-between rounded-full bg-[#1E1F20] px-3 py-2 shadow-xl"
-        style={{ elevation: 10 }}
+        style={{
+          marginHorizontal: 16,
+          marginBottom: 24,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderRadius: 9999,
+          backgroundColor: '#1E1F20',
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+          elevation: 10,
+        }}
       >
         {/* Left: Delete/Cancel */}
         <TouchableOpacity
           onPress={cancelRecording}
-          className="h-10 w-10 items-center justify-center rounded-full bg-[#2A2B2C]"
+          style={{
+            height: 40,
+            width: 40,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 9999,
+            backgroundColor: '#2A2B2C',
+          }}
         >
           <Ionicons name="trash-outline" size={20} color="#FF5A5F" />
         </TouchableOpacity>
 
         {/* Center: Waveform Visualizer */}
-        <View className="mx-3 h-10 flex-1 flex-row items-center justify-center gap-[2px] overflow-hidden">
+        <View
+          style={{
+            marginHorizontal: 12,
+            height: 40,
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            overflow: 'hidden',
+          }}
+        >
           {visualizerBars.map((level, i) => {
             // dynamic height based on sound level
             // min height 4, max 32
@@ -191,8 +267,10 @@ export const ChatInput = ({
             return (
               <View
                 key={i}
-                className="w-[3px] rounded-full bg-[#8BD65E]"
                 style={{
+                  width: 3,
+                  borderRadius: 9999,
+                  backgroundColor: '#8BD65E',
                   height: Math.min(32, height),
                   opacity: 0.6 + level * 0.4, // brighten when loud
                 }}
@@ -204,7 +282,14 @@ export const ChatInput = ({
         {/* Right: Send/Done */}
         <TouchableOpacity
           onPress={stopRecordingAndSend}
-          className="h-10 w-10 items-center justify-center rounded-full bg-white"
+          style={{
+            height: 40,
+            width: 40,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 9999,
+            backgroundColor: 'white',
+          }}
         >
           <Ionicons name="arrow-up" size={24} color="black" />
         </TouchableOpacity>
@@ -233,7 +318,13 @@ export const ChatInput = ({
           onChangeText={onChangeText}
           placeholder="Ask Cooki..."
           placeholderTextColor="#78909C"
-          className="mb-1 max-h-[100px] font-visby text-base text-gray-900"
+          style={{
+            marginBottom: 4,
+            maxHeight: 100,
+            fontFamily: 'VisbyRoundCF-Regular',
+            fontSize: 16,
+            color: '#111827',
+          }}
           multiline
           textAlignVertical="top"
           editable={!loading && !isProcessing}

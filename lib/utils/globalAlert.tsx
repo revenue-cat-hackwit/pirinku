@@ -1,5 +1,3 @@
-import { Alert } from 'react-native';
-
 /**
  * Global Alert Configuration Store
  * This allows us to trigger custom alerts from anywhere in the app
@@ -73,14 +71,18 @@ class GlobalAlertManager {
 
       this.showAlertCallback(config);
     } else {
-      // Fallback to native Alert
-      console.warn('Custom alert not registered, falling back to native Alert');
-      const nativeButtons = buttons?.map((b) => ({
-        text: b.text,
-        onPress: b.onPress,
-        style: b.style,
-      }));
-      Alert.alert(title, message, nativeButtons);
+      // Fallback: Just log the alert instead of using native Alert
+      // Native Alert can cause navigation context errors in some cases
+      console.warn('Custom alert not registered yet. Alert:', title, message);
+
+      // If there are buttons with callbacks, execute the default one
+      if (buttons && buttons.length > 0) {
+        const defaultButton = buttons.find((b) => !b.style || b.style === 'default');
+        if (defaultButton?.onPress) {
+          // Execute callback after a short delay to avoid sync issues
+          setTimeout(() => defaultButton.onPress?.(), 0);
+        }
+      }
     }
   }
 }
