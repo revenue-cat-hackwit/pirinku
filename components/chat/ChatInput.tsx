@@ -139,6 +139,13 @@ export const ChatInput = React.memo(
           console.log('[ChatInput] Transcript received:', res.transcript);
           onChangeText(res.transcript);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else if (res && (res.silent || res.transcript === '')) {
+          console.log('[ChatInput] Audio was silent');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          // Optional: Maybe show a tiny toast "Didn't catch that?" but for now just silence is fine or specific alert
+          showAlert("Didn't catch that", 'Please speak a bit louder.', undefined, {
+            icon: <Ionicons name="mic-off" size={32} color="#F59E0B" />,
+          });
         } else {
           throw new Error('No transcript in response. Response: ' + JSON.stringify(res));
         }
