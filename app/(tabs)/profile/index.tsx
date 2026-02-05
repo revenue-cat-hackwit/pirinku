@@ -3,12 +3,11 @@ import { ProfileService } from '@/lib/services/profileService';
 import { PostService } from '@/lib/services/postService';
 import { ProfileUser } from '@/lib/types/auth';
 import { Post, MyComment } from '@/lib/types/post';
-import { Setting2, DocumentText, MessageText, Heart, Messages, Diamonds, Home } from 'iconsax-react-native';
+import { Setting2, DocumentText, MessageText, Heart, Messages, Home } from 'iconsax-react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useState, useCallback } from 'react';
-import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
-import RevenueCatUI from 'react-native-purchases-ui';
+import React, { useState, useCallback, useRef } from 'react';
+import { ProButton } from '@/components/ProButton';
 
 import {
   ScrollView,
@@ -69,7 +68,6 @@ export default function Profile() {
   const currentUser = useAuthStore((state) => state.user);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { initialize } = useSubscriptionStore();
 
   // Profile Data from API
   const [profileData, setProfileData] = useState<ProfileUser | null>(null);
@@ -84,10 +82,22 @@ export default function Profile() {
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
+  // Refs untuk mencegah multiple fetches
+  const isFetchingRef = useRef(false);
+  const lastFetchTimeRef = useRef<number>(0);
+
   const fetchProfile = async () => {
     if (!token) return;
+    
+    // Debounce: cegah fetch berulang dalam 2 detik
+    const now = Date.now();
+    if (isFetchingRef.current || (now - lastFetchTimeRef.current < 2000)) {
+      return;
+    }
 
     try {
+      isFetchingRef.current = true;
+      lastFetchTimeRef.current = now;
       setLoading(true);
 
       // Fetch profile from new API
@@ -101,6 +111,7 @@ export default function Profile() {
       });
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   };
 
@@ -130,15 +141,27 @@ export default function Profile() {
   useFocusEffect(
     useCallback(() => {
       fetchProfile();
-    }, [token]),
+      
+      // Cleanup function
+      return () => {
+        isFetchingRef.current = false;
+      };
+    }, [token]), // Hanya depend pada token, bukan profileData
   );
 
-  // Fetch tab data when tab changes or profile loads
+  // Fetch tab data ketika tab berubah
   React.useEffect(() => {
     if (profileData) {
       fetchTabData(activeTab);
     }
-  }, [activeTab, profileData]);
+  }, [activeTab]); // Hapus profileData dari dependencies
+
+  // Inisialisasi data tab saat pertama kali profileData tersedia
+  React.useEffect(() => {
+    if (profileData && activeTab === 'My Posts' && myPosts.length === 0) {
+      fetchTabData(activeTab);
+    }
+  }, [profileData]); // Hanya untuk inisialisasi awal
 
   const userInitials = getInitials(profileData?.fullName, profileData?.username);
 
@@ -267,21 +290,7 @@ export default function Profile() {
           <View className="mb-6 flex-row items-center justify-between">
             <Text className="font-visby-bold text-xl text-[#8BD65E]">Profile</Text>
             <View className="flex-row items-center gap-2">
-              <TouchableOpacity
-                onPress={async () => {
-                  const paywallResult = await RevenueCatUI.presentPaywall();
-                  if (
-                    paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
-                    paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
-                  ) {
-                    await initialize();
-                  }
-                }}
-                className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
-              >
-                <Diamonds size={16} color="white" variant="Bold" />
-                <Text className="font-visby-bold text-sm text-white">Pro</Text>
-              </TouchableOpacity>
+              <ProButton />
               <TouchableOpacity onPress={() => router.push('/settings')}>
                 <Setting2 size={24} color={isDark ? 'white' : 'black'} variant="Outline" />
               </TouchableOpacity>

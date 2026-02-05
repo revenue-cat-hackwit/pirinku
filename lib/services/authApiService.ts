@@ -13,6 +13,8 @@ import {
     ForgotPasswordResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
+    GoogleSignInRequest,
+    GoogleSignInResponse,
 } from '@/lib/types/auth';
 
 export const AuthApiService = {
@@ -137,5 +139,41 @@ export const AuthApiService = {
      */
     async getToken(): Promise<string | null> {
         return await TokenStorage.getToken();
+    },
+
+    /**
+     * Sign in with Google (Supabase auth)
+     * POST /api/auth/google-supabase
+     */
+    async googleSignIn(userData: GoogleSignInRequest): Promise<GoogleSignInResponse> {
+        console.log('🔵 [AuthApiService] Calling backend /api/auth/google-supabase...', {
+            userId: userData.user.id,
+            email: userData.user.email,
+        });
+        
+        const response = await apiClient.post<GoogleSignInResponse>(
+            '/api/auth/google-supabase',
+            userData
+        );
+
+        console.log('✅ [AuthApiService] Backend response received:', {
+            success: response.data.success,
+            hasToken: !!response.data.data?.token,
+            userId: response.data.data?.user?.id,
+        });
+
+        // Save token to storage
+        if (response.data.success && response.data.data.token) {
+            await TokenStorage.saveToken(response.data.data.token);
+            console.log('✅ [AuthApiService] Token saved to storage');
+            
+            // Save user ID for later use
+            if (response.data.data.user?.id) {
+                await AsyncStorage.setItem('pirinku_user_id', response.data.data.user.id);
+                console.log('✅ [AuthApiService] User ID saved to storage');
+            }
+        }
+
+        return response.data;
     },
 };

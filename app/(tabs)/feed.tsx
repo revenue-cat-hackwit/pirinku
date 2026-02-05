@@ -14,15 +14,13 @@ import { Post, CurrentUser } from '@/lib/types/post';
 import { FeedPostCard } from '@/components/feed/FeedPostCard';
 import { PostCommentsModal } from '@/components/feed/PostCommentsModal';
 import { CreatePostModal } from '@/components/feed/CreatePostModal';
-import { Notification, Setting2, Danger, DocumentText, Refresh, MagicStar, Add, Diamonds } from 'iconsax-react-native';
+import { Notification, Setting2, Danger, DocumentText, Refresh, MagicStar, Add } from 'iconsax-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import RevenueCatUI from 'react-native-purchases-ui';
-import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
+import { ProButton } from '@/components/ProButton';
 
 export default function Feed() {
   const router = useRouter();
-  const { initialize } = useSubscriptionStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -223,21 +221,7 @@ export default function Feed() {
                   >
                     <Setting2 size={20} color="#666" variant="Outline" />
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={async () => {
-                      const paywallResult = await RevenueCatUI.presentPaywall();
-                      if (
-                        paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
-                        paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
-                      ) {
-                        await initialize();
-                      }
-                    }}
-                    className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
-                  >
-                    <Diamonds size={16} color="white" variant="Bold" />
-                    <Text className="font-visby-bold text-sm text-white">Pro</Text>
-                  </TouchableOpacity>
+                  <ProButton />
                 </View>
               </View>
             </SafeAreaView>

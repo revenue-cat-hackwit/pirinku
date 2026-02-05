@@ -15,7 +15,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger, TickCircle, Diamonds, ArrowLeft, Filter, SearchNormal1, CloseCircle, Book, AddCircle, Calendar, Box, ShoppingCart, Add, Clock, TextalignJustifycenter, Timer1, Flash } from 'iconsax-react-native';
+import { Danger, TickCircle, ArrowLeft, Filter, SearchNormal1, CloseCircle, Book, AddCircle, Calendar, Box, ShoppingCart, Add, Clock, TextalignJustifycenter, Timer1, Flash, Health } from 'iconsax-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Recipe } from '@/lib/types';
@@ -24,8 +24,7 @@ import { useRecipeGenerator } from '@/lib/hooks/useRecipeGenerator';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from 'nativewind';
-import RevenueCatUI from 'react-native-purchases-ui';
-import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
+import { ProButton } from '@/components/ProButton';
 
 // Components
 import { RecipeCard } from '@/components/recipes/RecipeCard';
@@ -45,7 +44,6 @@ if (Platform.OS === 'android') {
 
 export default function SavedRecipesScreen() {
   const router = useRouter();
-  const { initialize } = useSubscriptionStore();
   const {
     savedRecipes,
     isLoading,
@@ -474,21 +472,7 @@ export default function SavedRecipesScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={async () => {
-              const paywallResult = await RevenueCatUI.presentPaywall();
-              if (
-                paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
-                paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
-              ) {
-                await initialize();
-              }
-            }}
-            className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
-          >
-            <Diamonds size={16} color="white" variant="Bold" />
-            <Text className="font-visby-bold text-sm text-white">Pro</Text>
-          </TouchableOpacity>
+          <ProButton />
         </View>
       </View>
 
@@ -653,6 +637,15 @@ export default function SavedRecipesScreen() {
             <Box size={24} color="#8BD65E" />
           </View>
           <Text className="font-visby-bold text-xs text-gray-700 dark:text-gray-300">Pantry</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/nutrition-analyzer')} className="items-center">
+          <View className="mb-1 h-12 w-12 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-900/20">
+            <Health size={24} color="#8B5CF6" variant="Bold" />
+          </View>
+          <Text className="font-visby-bold text-xs text-gray-700 dark:text-gray-300">
+            Nutrition
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/shopping-list')} className="items-center">

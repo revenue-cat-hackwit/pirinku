@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
+import { TickCircle } from 'iconsax-react-native';
 
 interface SelectableCardProps {
   label: string;
@@ -17,21 +18,47 @@ export default function SelectableCard({
   showBorder = false,
 }: SelectableCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const scaleValue = React.useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      className={`w-[47%] overflow-hidden rounded-2xl ${
-        isSelected ? 'border-[#8BD65E] bg-green-100' : 'border-gray-200 bg-white'
-      }`}
+    <Animated.View
       style={{
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        transform: [{ scale: scaleValue }],
+        width: '47%',
       }}
     >
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9}
+        className={`overflow-hidden rounded-2xl border-2 ${
+          isSelected ? 'border-[#8BD65E] bg-green-50' : 'border-gray-200 bg-white'
+        }`}
+        style={{
+          shadowColor: isSelected ? '#8BD65E' : '#000',
+          shadowOffset: { width: 0, height: isSelected ? 4 : 2 },
+          shadowOpacity: isSelected ? 0.25 : 0.1,
+          shadowRadius: isSelected ? 8 : 4,
+          elevation: isSelected ? 6 : 3,
+        }}
+      >
       {/* Image Container */}
       <View className="h-32 w-full items-center justify-center p-3">
         {imagePath ? (
@@ -60,16 +87,22 @@ export default function SelectableCard({
       </View>
 
       {/* Label */}
-      <View className="items-center p-3">
-        <Text className="text-center font-visby-bold text-sm text-gray-900">{label}</Text>
+      <View className="items-center px-3 pb-4 pt-2">
+        <Text 
+          className="text-center font-visby-bold text-sm text-gray-900"
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
       </View>
 
       {/* Selection Indicator */}
       {isSelected && (
-        <View className="absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-full bg-[#8BD65E]">
-          <Text className="font-visby-bold text-xs text-white">✓</Text>
+        <View className="absolute right-3 top-3 rounded-full bg-[#8BD65E] p-1.5">
+          <TickCircle size={16} color="#FFFFFF" variant="Bold" />
         </View>
       )}
     </TouchableOpacity>
+    </Animated.View>
   );
 }

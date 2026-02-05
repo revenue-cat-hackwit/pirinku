@@ -70,11 +70,12 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
-        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="personalization" />
         <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
         <Stack.Screen name="shopping-list" options={{ presentation: 'modal' }} />
         <Stack.Screen name="meal-planner" options={{ presentation: 'modal' }} />
         <Stack.Screen name="pantry" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="nutrition-analyzer" options={{ presentation: 'modal' }} />
       </Stack>
 
       {/* Global Alert Modal */}

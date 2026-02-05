@@ -15,9 +15,11 @@ import { Container } from '@/components/Container';
 import * as ImagePicker from 'expo-image-picker';
 import { PantryService, PantryItem } from '@/lib/services/pantryService';
 import { RecipeService } from '@/lib/services/recipeService';
+import { PantryRecommendationService, RecipeWithPantryMatch } from '@/lib/services/pantryRecommendationService';
 import { CustomCameraModal } from '@/components/CustomCameraModal';
+import { RecipeDetailModal } from '@/components/recipes/RecipeDetailModal';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger, TickCircle } from 'iconsax-react-native';
+import { Danger, TickCircle, MagicStar } from 'iconsax-react-native';
 
 const CATEGORIES = ['Dairy', 'Vegetable', 'Fruit', 'Meat', 'Grain', 'Spice', 'Other'];
 
@@ -42,6 +44,12 @@ export default function PantryScreen() {
 
   // Custom Camera State
   const [isCameraVisible, setIsCameraVisible] = useState(false);
+
+  // Recipe Recommendations State
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [recommendations, setRecommendations] = useState<RecipeWithPantryMatch[]>([]);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeWithPantryMatch | null>(null);
 
   const loadPantry = useCallback(async () => {
     try {
@@ -229,6 +237,57 @@ export default function PantryScreen() {
     }
   };
 
+  const handleGetRecommendations = async () => {
+    if (items.length === 0) {
+      showAlert(
+        'Pantry Empty',
+        'Add some ingredients to your pantry first to get recipe recommendations!',
+        undefined,
+        {
+          icon: <Danger size={32} color="#F59E0B" variant="Bold" />,
+        }
+      );
+      return;
+    }
+
+    setLoadingRecommendations(true);
+    try {
+      const pantryItemNames = items.map(item => item.ingredient_name);
+      const recs = await PantryRecommendationService.getRecommendations({
+        pantryItems: pantryItemNames,
+        maxIngredients: 5,
+        difficulty: 'easy',
+        timeLimit: 60,
+        servings: 2,
+      });
+
+      setRecommendations(recs);
+      setShowRecommendations(true);
+      
+      showAlert(
+        'Recipes Found! 🎉',
+        `Generated ${recs.length} AI-powered recipes based on your pantry!`,
+        undefined,
+        {
+          icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+        }
+      );
+    } catch (error: any) {
+      console.error('Failed to get recommendations:', error);
+      showAlert(
+        'Error',
+        error.message || 'Failed to get recommendations. Please try again.',
+        undefined,
+        {
+          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+          type: 'destructive',
+        }
+      );
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
+
   const renderItem = (item: PantryItem) => {
     const daysLeft = getDaysUntilExpiry(item.expiry_date);
     let expiryColor = 'text-gray-500';
@@ -300,6 +359,46 @@ export default function PantryScreen() {
         className="flex-1 px-5 pt-4"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        {/* Kitchen Tools Section */}
+        {items.length > 0 && (
+          <View className="mb-4">
+            <Text className="mb-3 font-visby-bold text-sm text-gray-500">Kitchen Tools 🔧</Text>
+            <View className="flex-row gap-3">
+              {/* AI Recipe Recommendations Button */}
+              <TouchableOpacity
+                onPress={handleGetRecommendations}
+                disabled={loadingRecommendations}
+                className="flex-1 flex-row items-center justify-center rounded-2xl bg-purple-500 py-3 shadow-sm"
+                style={{
+                  backgroundColor: loadingRecommendations ? '#D1D5DB' : '#8B5CF6',
+                }}
+              >
+                {loadingRecommendations ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <>
+                    <MagicStar size={20} color="white" variant="Bold" />
+                    <Text className="ml-2 font-visby-bold text-sm text-white">
+                      Recipe Ideas
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Nutrition Analyzer Button */}
+              <TouchableOpacity
+                onPress={() => router.push('/nutrition-analyzer')}
+                className="flex-1 flex-row items-center justify-center rounded-2xl bg-blue-500 py-3 shadow-sm"
+              >
+                <Ionicons name="fitness" size={20} color="white" />
+                <Text className="ml-2 font-visby-bold text-sm text-white">
+                  Nutrition Scan
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Main Content Area */}
         {loading ? (
           <View className="mt-20 items-center">
@@ -595,6 +694,178 @@ export default function PantryScreen() {
         onClose={() => setIsCameraVisible(false)}
         onPhotoTaken={handleCameraCapture}
       />
+
+      {/* Recipe Recommendations Modal */}
+      <Modal visible={showRecommendations} animationType="slide" presentationStyle="pageSheet">
+        <View className="flex-1 bg-white">
+          <View className="border-b border-gray-100 bg-white px-6 pb-4 pt-16">
+            <View className="flex-row items-center justify-between">
+              <Text className="font-visby-bold text-2xl text-gray-800">
+                Recipe Recommendations
+              </Text>
+              <TouchableOpacity onPress={() => setShowRecommendations(false)}>
+                <Ionicons name="close" size={28} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <Text className="mt-2 font-visby text-gray-500">
+              {recommendations.length} recipe{recommendations.length !== 1 ? 's' : ''} match your {items.length} pantry item{items.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+
+          <ScrollView className="flex-1 px-6 pt-4">
+            {recommendations.map((recipe, index) => {
+              const isAIGenerated = recipe.id?.startsWith('ai-rec-');
+              const isExisting = !isAIGenerated;
+              
+              return (
+                <TouchableOpacity
+                  key={recipe.id || index}
+                  onPress={() => setSelectedRecipe(recipe)}
+                  className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                >
+                  <View className="p-4">
+                    <View className="mb-3 flex-row items-start justify-between">
+                      <View className="flex-1">
+                        {/* Recipe Source Badge */}
+                        <View className="mb-2 flex-row items-center gap-2">
+                          {isExisting ? (
+                            <View className="flex-row items-center rounded-full bg-blue-100 px-2 py-1">
+                              <Ionicons name="bookmark" size={12} color="#3B82F6" />
+                              <Text className="ml-1 font-visby-bold text-xs text-blue-600">
+                                Saved Recipe
+                              </Text>
+                            </View>
+                          ) : (
+                            <View className="flex-row items-center rounded-full bg-purple-100 px-2 py-1">
+                              <MagicStar size={12} color="#8B5CF6" variant="Bold" />
+                              <Text className="ml-1 font-visby-bold text-xs text-purple-600">
+                                AI Generated
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        
+                        <Text className="mb-1 font-visby-bold text-lg text-gray-900">
+                          {recipe.title}
+                        </Text>
+                        <Text className="font-visby text-sm text-gray-600">
+                          {recipe.description}
+                        </Text>
+                      </View>
+                      <View className="ml-3 items-center rounded-full bg-green-100 px-3 py-1">
+                        <Text className="font-visby-bold text-xs text-green-700">
+                          {Math.round(recipe.pantryMatchScore * 100)}% Match
+                        </Text>
+                      </View>
+                    </View>
+
+                  <View className="mb-3 flex-row flex-wrap gap-2">
+                    <View className="flex-row items-center rounded-full bg-gray-100 px-3 py-1">
+                      <Ionicons name="time-outline" size={14} color="#666" />
+                      <Text className="ml-1 font-visby text-xs text-gray-600">
+                        {recipe.time_minutes} min
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center rounded-full bg-gray-100 px-3 py-1">
+                      <Ionicons name="restaurant-outline" size={14} color="#666" />
+                      <Text className="ml-1 font-visby text-xs text-gray-600">
+                        {recipe.servings} servings
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center rounded-full bg-blue-100 px-3 py-1">
+                      <Text className="font-visby-bold text-xs text-blue-700">
+                        {recipe.difficulty}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {recipe.usedPantryItems.length > 0 && (
+                    <View className="mb-3">
+                      <Text className="mb-1 font-visby-bold text-xs text-gray-500">
+                        Using from your pantry:
+                      </Text>
+                      <Text className="font-visby text-sm text-green-600">
+                        {recipe.usedPantryItems.join(', ')}
+                      </Text>
+                    </View>
+                  )}
+
+                  {recipe.missingIngredients.length > 0 && (
+                    <View className="rounded-xl bg-orange-50 p-3">
+                      <Text className="mb-1 font-visby-bold text-xs text-orange-700">
+                        Need to buy ({recipe.missingIngredients.length}):
+                      </Text>
+                      <Text className="font-visby text-xs text-orange-600">
+                        {recipe.missingIngredients.map(ing => ing.item).join(', ')}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <View className="flex-row border-t border-gray-100 bg-gray-50 px-4 py-3">
+                  <Text className="font-visby-bold text-sm text-purple-600">
+                    Tap to view full recipe →
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )})}
+
+            {recommendations.length === 0 && (
+              <View className="mt-10 items-center">
+                <Text className="font-visby text-gray-400">No recommendations available</Text>
+              </View>
+            )}
+
+            <View className="mb-4 rounded-2xl bg-gradient-to-r from-purple-50 to-blue-50 p-4">
+              <View className="flex-row items-start">
+                <Ionicons name="information-circle" size={20} color="#8B5CF6" />
+                <View className="ml-2 flex-1">
+                  <Text className="mb-1 font-visby-bold text-sm text-purple-700">
+                    Smart Recommendations
+                  </Text>
+                  <Text className="font-visby text-xs text-purple-600">
+                    Showing both your saved recipes and AI-generated options that match your pantry items. Higher match % means fewer ingredients to buy!
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View className="h-6" />
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Recipe Detail Modal */}
+      {selectedRecipe && (
+        <RecipeDetailModal
+          visible={!!selectedRecipe}
+          recipe={selectedRecipe}
+          onClose={() => setSelectedRecipe(null)}
+          onSave={async (recipe) => {
+            try {
+              await RecipeService.saveRecipe(recipe);
+              showAlert(
+                'Recipe Saved! 📖',
+                'Added to your recipe collection',
+                undefined,
+                {
+                  icon: <TickCircle size={32} color="#10B981" variant="Bold" />,
+                }
+              );
+            } catch (error) {
+              showAlert(
+                'Error',
+                'Failed to save recipe',
+                undefined,
+                {
+                  icon: <Danger size={32} color="#EF4444" variant="Bold" />,
+                  type: 'destructive',
+                }
+              );
+            }
+          }}
+        />
+      )}
     </Container>
   );
 }

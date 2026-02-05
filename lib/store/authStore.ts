@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthApiService } from '../services/authApiService';
+import { AuthService } from '../services/authService';
+import { PersonalizationService } from '../services/personalizationService';
+import { TokenStorage } from '../services/apiClient';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { AuthUser } from '@/lib/types/auth';
 
 interface AuthState {
@@ -19,6 +23,7 @@ interface AuthActions {
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<void>;
   initializeAuth: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>((set) => ({
@@ -29,9 +34,14 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   /**
    * Initialize auth state from stored token on app launch
    */
+
   initializeAuth: async () => {
     set({ isLoading: true });
     try {
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      });
+
       const hasToken = await AuthApiService.hasValidToken();
       if (hasToken) {
         const token = await AuthApiService.getToken();
@@ -57,6 +67,18 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
         token: response.data.token,
         user: response.data.user
       });
+
+      // Check personalization status after successful login
+      try {
+        await PersonalizationService.checkPersonalization();
+      } catch (error: any) {
+        console.warn('⚠️ Failed to check personalization (non-blocking):', {
+          message: error.message,
+          error: error.toString(),
+        });
+        // Don't block login if personalization check fails
+        // User will be prompted for onboarding if hasOnboarded is false
+      }
     } catch (error) {
       throw error;
     } finally {
@@ -88,6 +110,18 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
         token: response.data.token,
         user: response.data.user
       });
+
+      // Check personalization status after successful verification
+      try {
+        await PersonalizationService.checkPersonalization();
+      } catch (error: any) {
+        console.warn('⚠️ Failed to check personalization (non-blocking):', {
+          message: error.message,
+          error: error.toString(),
+        });
+        // Don't block verification if personalization check fails
+        // User will be prompted for onboarding if hasOnboarded is false
+      }
     } finally {
       set({ isLoading: false });
     }
@@ -133,5 +167,50 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
    */
   resetPassword: async (email: string, otp: string, newPassword: string) => {
     await AuthApiService.resetPassword(email, otp, newPassword);
+  },
+
+  /**
+   * Sign in with Google
+   */
+  signInWithGoogle: async () => {
+    set({ isLoading: true });
+    try {
+      console.log('🟢 [AuthStore] Starting Google Sign-In...');
+      const response = await AuthService.signInWithGoogle();
+
+      if (response?.success && response.data) {
+        console.log('✅ [AuthStore] Google Sign-In successful, setting user state:', {
+          userId: response.data.user.id,
+          email: response.data.user.email,
+          username: response.data.user.username,
+        });
+
+        const token = response.data.token;
+        const user = response.data.user;
+
+        set({ token, user });
+        console.log('✅ [AuthStore] User state updated successfully');
+
+        // Check personalization status after successful Google sign-in
+        try {
+          await PersonalizationService.checkPersonalization();
+        } catch (error: any) {
+          console.warn('⚠️ Failed to check personalization (non-blocking):', {
+            message: error.message,
+            error: error.toString(),
+          });
+          // Don't block sign-in if personalization check fails
+          // User will be prompted for onboarding if hasOnboarded is false
+        }
+      } else {
+        console.error('❌ [AuthStore] Invalid response from signInWithGoogle');
+        throw new Error('Invalid response from Google Sign-In');
+      }
+    } catch (error) {
+      console.error('❌ [AuthStore] Google Sign-In Error:', error);
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
   },
 }));

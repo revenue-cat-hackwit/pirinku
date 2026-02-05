@@ -79,6 +79,27 @@ export interface ResetPasswordResponse {
     message: string;
 }
 
+// ============= Google Sign-In =============
+export interface GoogleSignInRequest {
+    user: {
+        id: string;
+        email: string;
+        user_metadata: {
+            full_name?: string;
+            avatar_url?: string;
+        };
+    };
+}
+
+export interface GoogleSignInResponse {
+    success: boolean;
+    message: string;
+    data: {
+        token: string;
+        user: AuthUser;
+    };
+}
+
 // ============= Profile =============
 export interface ProfileResponse {
     success: boolean;

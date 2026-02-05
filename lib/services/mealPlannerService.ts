@@ -1,5 +1,6 @@
 import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
 import { Recipe } from '@/lib/types';
+import { TokenStorage } from './apiClient';
 
 export interface MealPlan {
   id: string;
@@ -108,42 +109,82 @@ export const MealPlannerService = {
     preferences?: { goal?: string; dietType?: string; allergies?: string; calories?: string },
     generationMode?: 'replace' | 'fill',
   ): Promise<void> {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('Not authenticated');
-
+    console.log('[MealPlanner] 🔍 Checking authentication...');
+    
+    // Try to get Supabase session first
     const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    let token = sessionData.session?.access_token;
+    let userId = sessionData.session?.user?.id;
+    
+    if (!token) {
+      console.log('[MealPlanner] ⚠️ No Supabase session, using custom JWT as fallback...');
+      
+      // Fallback to custom JWT
+      const customToken = await TokenStorage.getToken();
+      if (!customToken) {
+        throw new Error('Not authenticated. Please sign in again.');
+      }
+      
+      // Decode custom JWT to get user ID
+      try {
+        const base64Url = customToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const decoded = JSON.parse(jsonPayload);
+        userId = decoded.userId;
+        token = customToken;
+        
+        console.log('[MealPlanner] ✅ Using custom JWT for user:', userId);
+      } catch (error) {
+        console.error('[MealPlanner] ❌ Failed to decode custom JWT:', error);
+        throw new Error('Invalid authentication token');
+      }
+    } else {
+      console.log('[MealPlanner] ✅ Using Supabase session for user:', userId);
+    }
 
-    if (!token) throw new Error('No access token found');
+    if (!token || !userId) {
+      throw new Error('Not authenticated. Please sign in again.');
+    }
 
-    console.log('Generating plan for:', startDate);
+    console.log('[MealPlanner] Generating plan for:', startDate);
 
     // Use direct fetch for better reliability/debugging
-    // Ensure no double slashes if supabaseUrl ends with /
     const baseUrl = supabaseUrl.replace(/\/$/, '');
     const functionUrl = `${baseUrl}/functions/v1/generate-weekly-plan`;
 
     console.log('[MealPlanner] Fetching:', functionUrl);
-    console.log('[MealPlanner] Token Prefix:', token.substring(0, 10) + '...');
-    console.log('[MealPlanner] Anon Key Prefix:', supabaseAnonKey.substring(0, 10) + '...');
+    console.log('[MealPlanner] Token type:', token.startsWith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9') ? 'Custom JWT' : 'Supabase JWT');
 
     try {
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Send User Token for RLS
+          Authorization: `Bearer ${token}`,
           apikey: supabaseAnonKey,
+          'x-user-id': userId, // Pass user ID explicitly for custom JWT
         },
         body: JSON.stringify({
           startDate,
           customPreferences: preferences,
-          generationMode: generationMode || 'replace', // Default to replace if not specified
+          generationMode: generationMode || 'replace',
+          userId, // Also include in body
         }),
       });
 
       if (!response.ok) {
         const text = await response.text();
+        console.error('[MealPlanner] ❌ Response error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: text.substring(0, 500),
+        });
         let errMsg = text;
         try {
           const json = JSON.parse(text);
@@ -153,8 +194,10 @@ export const MealPlannerService = {
       }
 
       const data = await response.json();
+      console.log('[MealPlanner] ✅ Success:', data);
       if (!data.success) throw new Error(data.error || 'Failed to generate plan');
     } catch (error: any) {
+      console.error('[MealPlanner] ❌ Exception:', error);
       // Handle network errors specifically
       if (
         error.message?.includes('Failed to fetch') ||

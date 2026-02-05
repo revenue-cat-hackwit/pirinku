@@ -14,6 +14,7 @@ interface PreferencesState {
   toggleEquipment: (tool: string) => Promise<void>;
   setDietGoal: (goal: string) => Promise<void>;
   completeOnboarding: () => void;
+  setHasOnboarded: (value: boolean) => void;
   sync: () => Promise<void>; // Fetch from cloud
 }
 
@@ -33,6 +34,8 @@ export const usePreferencesStore = create<PreferencesState>()(
       isLoading: false,
 
       completeOnboarding: () => set({ hasOnboarded: true }),
+
+      setHasOnboarded: (value: boolean) => set({ hasOnboarded: value }),
 
       toggleCuisine: async (cuisine) => {
         // 1. Optimistic Update

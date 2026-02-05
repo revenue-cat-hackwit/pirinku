@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger, TickCircle, MagicStar, Trash, HambergerMenu, Diamonds } from 'iconsax-react-native';
+import { Danger, TickCircle, MagicStar, Trash, HambergerMenu } from 'iconsax-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Message, Recipe } from '@/lib/types';
 import { AIService } from '@/lib/services/aiService';
@@ -20,8 +20,7 @@ import { RecipeService } from '@/lib/services/recipeService';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { EmptyChat } from '@/components/chat/EmptyChat';
-import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
-import RevenueCatUI from 'react-native-purchases-ui';
+import { ProButton } from '@/components/ProButton';
 import * as Haptics from 'expo-haptics';
 import { ChatHistoryDrawer } from '@/components/chat/ChatHistoryDrawer';
 import { useRouter } from 'expo-router';
@@ -108,9 +107,6 @@ export default function Chatbot() {
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
   const [chatHistoryLoading, setChatHistoryLoading] = useState(false);
-
-  // Subscription Hooks
-  const { checkCanGenerate, incrementUsage, initialize } = useSubscriptionStore();
 
   // Keyboard listener to scroll to bottom when keyboard shows
   useEffect(() => {
@@ -212,35 +208,8 @@ export default function Chatbot() {
     }
   };
 
-  const handlePresentPaywall = async () => {
-    const paywallResult = await RevenueCatUI.presentPaywall();
-    if (
-      paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
-      paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
-    ) {
-      await initialize();
-    }
-  };
-
   const sendMessage = async () => {
     if (!inputText.trim() && !loading) return;
-
-    // 1. CHECK QUOTA for Chat
-    if (!checkCanGenerate()) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      showAlert(
-        'Daily Limit Reached 🍳',
-        'You have used your free interactions for today. Upgrade to Pro for unlimited chat!',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade to Pro', onPress: handlePresentPaywall },
-        ],
-        {
-          icon: <MagicStar size={32} color="#F59E0B" variant="Bold" />,
-        },
-      );
-      return;
-    }
 
     const userMessageContent = inputText.trim();
     const userMessage: Message = {
@@ -275,8 +244,6 @@ export default function Chatbot() {
       const response = await ChatService.askAndSave(titleId, userMessageContent, 'groq');
       
       if (response.success && response.data) {
-        // 2. Increment Usage on Success
-        incrementUsage();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         const aiMessage: Message = {
@@ -306,23 +273,6 @@ export default function Chatbot() {
   };
 
   const pickImage = async () => {
-    // 1. CHECk QUOTA for Image Upload
-    if (!checkCanGenerate()) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      showAlert(
-        'Daily Limit Reached 🍳',
-        'You have used your free interactions for today. Upgrade to Pro for unlimited photo analysis!',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade to Pro', onPress: handlePresentPaywall },
-        ],
-        {
-          icon: <MagicStar size={32} color="#F59E0B" variant="Bold" />,
-        },
-      );
-      return;
-    }
-
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       showAlert(
@@ -383,8 +333,6 @@ export default function Chatbot() {
 
         const aiResponseContent = await AIService.sendMessage(allMessages);
 
-        // 2. Increment Usage on Success
-        incrementUsage();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         const aiMessage: Message = {
@@ -614,21 +562,7 @@ export default function Chatbot() {
 
             <Text className="font-visby-bold text-xl text-[#8BD65E]">Cooki</Text>
 
-            <TouchableOpacity
-              onPress={async () => {
-                const paywallResult = await RevenueCatUI.presentPaywall();
-                if (
-                  paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
-                  paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
-                ) {
-                  await initialize();
-                }
-              }}
-              className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
-            >
-              <Diamonds size={16} color="white" variant="Bold" />
-              <Text className="font-visby-bold text-sm text-white">Pro</Text>
-            </TouchableOpacity>
+            <ProButton />
           </View>
 
           <Animated.FlatList

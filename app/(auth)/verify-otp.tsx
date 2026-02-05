@@ -76,8 +76,8 @@ export default function VerifyOTPPage() {
     try {
       setLoading(true);
       await verifyOTP(email, code);
-      // Success - navigate to onboarding
-      router.replace('/onboarding');
+      // Success - navigate to personalization
+      router.replace('/personalization');
     } catch (error: any) {
       showAlert(
         'Verification Failed',

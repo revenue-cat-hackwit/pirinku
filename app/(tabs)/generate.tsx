@@ -8,12 +8,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Recipe } from '@/lib/types';
-import { ArrowRight2, Timer1, Flash, Cake, Activity, Global, Link, CloseCircle, Gallery, Camera, Edit, TickCircle, Diamonds } from 'iconsax-react-native';
+import { ArrowRight2, Timer1, Flash, Cake, Activity, Global, Link, CloseCircle, Gallery, Camera, Edit, TickCircle } from 'iconsax-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Image as ExpoImage } from 'expo-image';
 import Toast, { ToastRef } from '@/components/Toast';
-import { useSubscriptionStore } from '@/lib/store/subscriptionStore';
+import { ProButton } from '@/components/ProButton';
 import { useShoppingListStore } from '@/lib/store/shoppingListStore';
 import RevenueCatUI from 'react-native-purchases-ui';
 import { usePreferencesStore } from '@/lib/store/preferencesStore';
@@ -28,7 +28,6 @@ import { CustomCameraModal } from '@/components/CustomCameraModal';
 export default function GenerateScreen() {
   // Dependencies
   const preferences = usePreferencesStore((state) => state.preferences);
-  const { initialize } = useSubscriptionStore();
   const addToShoppingList = useShoppingListStore((state) => state.addMultiple);
   const toastRef = useRef<ToastRef>(null);
 
@@ -294,21 +293,7 @@ export default function GenerateScreen() {
       {/* AppBar */}
       <View className="flex-row items-center justify-between bg-white px-4 pb-3 pt-2">
         <Text className="font-visby-bold text-xl text-[#8BD65E]">Generate Recipe</Text>
-        <TouchableOpacity
-          onPress={async () => {
-            const paywallResult = await RevenueCatUI.presentPaywall();
-            if (
-              paywallResult === RevenueCatUI.PAYWALL_RESULT.PURCHASED ||
-              paywallResult === RevenueCatUI.PAYWALL_RESULT.RESTORED
-            ) {
-              await initialize();
-            }
-          }}
-          className="flex-row items-center gap-1.5 rounded-full bg-[#8BD65E] px-4 py-2"
-        >
-          <Diamonds size={16} color="white" variant="Bold" />
-          <Text className="font-visby-bold text-sm text-white">Pro</Text>
-        </TouchableOpacity>
+        <ProButton />
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>

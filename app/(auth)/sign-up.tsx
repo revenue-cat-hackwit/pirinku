@@ -2,14 +2,15 @@ import AuthFooterLink from '@/components/auth/AuthFooterLink';
 import AuthHeader from '@/components/auth/AuthHeader';
 import AuthPasswordField from '@/components/auth/AuthPasswordField';
 import AuthPrimaryButton from '@/components/auth/AuthPrimaryButton';
+import AuthSocialButton from '@/components/auth/AuthSocialButton';
 import AuthTextField from '@/components/auth/AuthTextField';
 import { useAuthStore } from '@/lib/store/authStore';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '@/lib/utils/globalAlert';
-import { Danger, Profile, User, Sms, Lock, UserAdd } from 'iconsax-react-native';
+import { Danger, Profile, User, Sms, Lock, UserAdd, Google } from 'iconsax-react-native';
 
 export default function SignUpPage() {
   const [username, setUsername] = useState('');
@@ -21,6 +22,7 @@ export default function SignUpPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const signUp = useAuthStore((state) => state.signUp);
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
 
   useEffect(() => {
     if (errorMessage) {
@@ -63,6 +65,22 @@ export default function SignUpPage() {
       setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    console.log('🟢 [Sign-Up Screen] User initiated Google Sign-In');
+    try {
+      console.log('🟢 [Sign-Up Screen] Calling signInWithGoogle...');
+      await signInWithGoogle();
+      console.log('✅ [Sign-Up Screen] Google Sign-In successful, navigating...');
+      router.replace('/personalization');
+    } catch (err: any) {
+      console.error('❌ [Sign-Up Screen] Google Sign-In failed:', {
+        message: err?.message,
+        error: err,
+      });
+      setErrorMessage(err.message || 'Google Sign-In failed');
     }
   };
 
@@ -123,6 +141,19 @@ export default function SignUpPage() {
           onPress={handleSignUp}
           disabled={isLoading}
           icon={!isLoading && <UserAdd size={20} color="#FFFFFF" variant="Bold" />}
+        />
+
+        <View className="mt-6 flex-row items-center justify-center gap-2">
+          <View className="h-[1px] flex-1 bg-gray-200" />
+          <Text className="font-visby-medium text-sm text-gray-500">Or continue with</Text>
+          <View className="h-[1px] flex-1 bg-gray-200" />
+        </View>
+
+        <AuthSocialButton
+          title="Sign up with Google"
+          icon={<Google size={20} color="#000000" variant="Bold" />}
+          onPress={handleGoogleSignIn}
+          containerClassName="mt-4"
         />
 
         <AuthFooterLink
