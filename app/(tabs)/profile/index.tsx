@@ -3,11 +3,14 @@ import { ProfileService } from '@/lib/services/profileService';
 import { PostService } from '@/lib/services/postService';
 import { ProfileUser } from '@/lib/types/auth';
 import { Post, MyComment } from '@/lib/types/post';
-import { Setting2, DocumentText, MessageText, Heart, Messages, Home } from 'iconsax-react-native';
+import { Setting2, DocumentText, MessageText, Heart, Messages, Home, Book, ArrowRight } from 'iconsax-react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback, useRef } from 'react';
 import { ProButton } from '@/components/ProButton';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useViewRecipeStore } from '@/lib/store/viewRecipeStore';
+import { Recipe } from '@/lib/types';
 
 import {
   ScrollView,
@@ -148,8 +151,29 @@ export default function Profile() {
 
       if (tab === 'My Posts') {
         // Use explicit userId if provided, otherwise fallback to profileData or currentUser
-        const userId = explicitUserId || profileData?.id || currentUser?.id;
+        let userId = explicitUserId || profileData?.id || currentUser?.id;
         
+        // Fallback to AsyncStorage if state is not ready yet
+        if (!userId) {
+            try {
+              const storedUserId = await AsyncStorage.getItem('pirinku_user_id');
+              if (storedUserId) userId = storedUserId;
+            } catch (err) {
+              console.warn("Failed to get stored user id", err);
+            }
+        }
+        
+        if (!userId) {
+             // If we still don't have a userId, do NOT fetch global posts.
+             // This prevents showing other users' posts on the profile page.
+             console.log("No user ID available for profile posts, skipping fetch");
+             setMyPosts([]); 
+             setLoadingPosts(false);
+             return;
+        }
+
+        console.log(`Fetching posts for user: ${userId}`);
+
         // Fetch posts filtered by userId from server
         // Using page 1, default limit 10
         const response = await PostService.getPosts(1, 10, userId);
@@ -202,47 +226,97 @@ export default function Profile() {
 
   const userInitials = getInitials(profileData?.fullName, profileData?.username);
 
-  const renderPostItem = ({ item }: { item: Post }) => (
-    <View className="mb-4 rounded-xl bg-gray-50 p-4 dark:bg-gray-900">
-      <View className="mb-2 flex-row items-start justify-between">
-        <View className="flex-1">
-          <Text className="font-visby-bold text-base text-black dark:text-white">
-            {item.user.fullName}
-          </Text>
-          <Text className="font-visby text-xs text-gray-500 dark:text-gray-400">
-            @{item.user.username} · {formatDate(item.createdAt)}
-          </Text>
+  const renderPostItem = ({ item }: { item: Post }) => {
+    // Parsing Logic
+    const jsonMatch = item.content.match(/\[recipe-json-start\]([\s\S]*?)\[recipe-json-end\]/);
+    let recipeData: Recipe | null = null;
+    if (jsonMatch) {
+      try {
+        recipeData = JSON.parse(jsonMatch[1]);
+      } catch (e) {
+        console.warn('Failed to parse recipe JSON in post', e);
+      }
+    }
+
+    const oldMatch = item.content.match(/\[recipe:([^|]+)\|([^\]]+)\]/);
+    const oldRecipeId = oldMatch ? oldMatch[1] : null;
+    const oldRecipeTitle = oldMatch ? oldMatch[2] : null;
+
+    const cleanContent = item.content
+      .replace(/\[recipe-json-start\][\s\S]*?\[recipe-json-end\]/, '')
+      .replace(/\[recipe:[^\]]+\]/g, '')
+      .trim();
+
+    const linkedRecipeTitle = recipeData?.title || oldRecipeTitle;
+    const hasLinkedRecipe = !!recipeData || !!oldRecipeId;
+
+    return (
+      <View className="mb-4 rounded-xl bg-gray-50 p-4 dark:bg-gray-900">
+        <View className="mb-2 flex-row items-start justify-between">
+          <View className="flex-1">
+            <Text className="font-visby-bold text-base text-black dark:text-white">
+              {item.user.fullName}
+            </Text>
+            <Text className="font-visby text-xs text-gray-500 dark:text-gray-400">
+              @{item.user.username} · {formatDate(item.createdAt)}
+            </Text>
+          </View>
+        </View>
+
+        <Text className="mb-3 font-visby text-sm text-gray-800 dark:text-gray-200">
+          {cleanContent}
+        </Text>
+
+        {/* Linked Recipe Card */}
+        {hasLinkedRecipe && (
+          <TouchableOpacity 
+            onPress={() => {
+                if (recipeData) {
+                    useViewRecipeStore.getState().setRecipe(recipeData);
+                    router.push('/recipe/shared');
+                } else if (oldRecipeId) {
+                    router.push(`/recipe/${oldRecipeId}`);
+                }
+            }}
+            className="mb-3 flex-row items-center bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl border border-orange-100 dark:border-orange-900"
+            activeOpacity={0.8}
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-orange-800 mr-3 shadow-sm">
+              <Book size={20} color="#F97316" variant="Bold" />
+            </View>
+            <View className="flex-1">
+              <Text className="font-visby text-xs text-orange-600 dark:text-orange-400 mb-0.5">Linked Recipe</Text>
+              <Text className="font-visby-bold text-sm text-gray-900 dark:text-white" numberOfLines={1}>{linkedRecipeTitle}</Text>
+            </View>
+            <ArrowRight size={16} color="#F97316" />
+          </TouchableOpacity>
+        )}
+
+        {item.imageUrl && (
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 12 }}
+            contentFit="cover"
+          />
+        )}
+
+        <View className="flex-row items-center gap-4">
+          <View className="flex-row items-center gap-1">
+            <Heart size={18} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Outline" />
+            <Text className="font-visby text-xs text-gray-600 dark:text-gray-400">
+              {item.likesCount}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-1">
+            <Messages size={18} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Outline" />
+            <Text className="font-visby text-xs text-gray-600 dark:text-gray-400">
+              {item.commentsCount}
+            </Text>
+          </View>
         </View>
       </View>
-
-      <Text className="mb-3 font-visby text-sm text-gray-800 dark:text-gray-200">
-        {item.content}
-      </Text>
-
-      {item.imageUrl && (
-        <Image
-          source={{ uri: item.imageUrl }}
-          style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 12 }}
-          contentFit="cover"
-        />
-      )}
-
-      <View className="flex-row items-center gap-4">
-        <View className="flex-row items-center gap-1">
-          <Heart size={18} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Outline" />
-          <Text className="font-visby text-xs text-gray-600 dark:text-gray-400">
-            {item.likesCount}
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-1">
-          <Messages size={18} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Outline" />
-          <Text className="font-visby text-xs text-gray-600 dark:text-gray-400">
-            {item.commentsCount}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   const renderCommentItem = ({ item }: { item: MyComment }) => (
     <View className="mb-4 rounded-xl bg-gray-50 p-4 dark:bg-gray-900">
