@@ -127,6 +127,10 @@ export const PantryRecommendationService = {
       }));
     } catch (error: any) {
       console.error('AI Recommendation Error:', error);
+      // Log more details if available
+      if (error instanceof Error) {
+          console.log('Error details:', error.message, error.stack);
+      }
       // Return empty array instead of throwing to allow existing recipes to still show
       return [];
     }

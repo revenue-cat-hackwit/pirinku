@@ -379,40 +379,39 @@ export default function PantryScreen() {
             <Text className="mb-3 font-visby-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">Kitchen Tools</Text>
             <View className="flex-row gap-3">
               {/* AI Recipe Recommendations Button */}
-              <TouchableOpacity
-                onPress={handleGetRecommendations}
-                disabled={loadingRecommendations}
-                className="flex-1 overflow-hidden"
-              >
-                <View 
-                  className="flex-1 flex-row items-center justify-center rounded-2xl py-4 shadow-sm active:scale-95"
+                <TouchableOpacity
+                  onPress={handleGetRecommendations}
+                  disabled={loadingRecommendations}
+                  className="w-full flex-row items-center justify-between rounded-3xl bg-purple-600 px-5 py-5 shadow-lg shadow-purple-200 active:scale-95 dark:shadow-none"
                   style={{
-                    backgroundColor: loadingRecommendations ? '#E5E7EB' : '#8B5CF6',
+                    backgroundColor: loadingRecommendations ? '#F3F4F6' : '#8B5CF6',
                   }}
                 >
-                  {loadingRecommendations ? (
-                    <ActivityIndicator color="#6B7280" size="small" />
-                  ) : (
-                    <>
-                      <MagicStar size={22} color="white" variant="Bold" />
-                      <Text className="ml-2 font-visby-bold text-sm text-white">
-                        Recipe Ideas
+                  <View className="flex-row items-center flex-1">
+                    <View className={`h-12 w-12 items-center justify-center rounded-2xl ${loadingRecommendations ? 'bg-gray-200' : 'bg-purple-500/30'}`}>
+                      {loadingRecommendations ? (
+                         <ActivityIndicator color="#9CA3AF" size="small" />
+                      ) : (
+                         <MagicStar size={24} color="white" variant="Bold" />
+                      )}
+                    </View>
+                    <View className="ml-4 flex-1">
+                      <Text className={`font-visby-bold text-lg ${loadingRecommendations ? 'text-gray-400' : 'text-white'}`}>
+                        {loadingRecommendations ? 'Thinking...' : 'Generate Recipes'}
                       </Text>
-                    </>
+                      <Text className={`font-visby text-sm ${loadingRecommendations ? 'text-gray-300' : 'text-purple-100'}`}>
+                        {loadingRecommendations ? 'Analyzing your pantry items' : 'Get AI ideas based on your items'}
+                      </Text>
+                    </View>
+                  </View>
+                  {!loadingRecommendations && (
+                    <View className="h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                      <Ionicons name="arrow-forward" size={20} color="white" />
+                    </View>
                   )}
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
-              {/* Nutrition Analyzer Button */}
-              <TouchableOpacity
-                onPress={() => router.push('/nutrition-analyzer')}
-                className="flex-1 flex-row items-center justify-center rounded-2xl bg-blue-500 py-4 shadow-sm active:scale-95"
-              >
-                <Ionicons name="fitness" size={22} color="white" />
-                <Text className="ml-2 font-visby-bold text-sm text-white">
-                  Nutrition Scan
-                </Text>
-              </TouchableOpacity>
+
             </View>
           </View>
         )}
