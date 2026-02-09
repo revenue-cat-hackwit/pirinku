@@ -1,7 +1,7 @@
-# 🍽️ Pirinku - Your AI Smart Cooking Assistant
+# 🍽️ ReCook - Your AI Smart Cooking Assistant
 
-Pirinku is an innovative mobile application tailored for culinary enthusiasts
-and home cooks. Leveraging the power of Artificial Intelligence, Pirinku helps
+ReCook is an innovative mobile application tailored for culinary enthusiasts
+and home cooks. Leveraging the power of Artificial Intelligence, ReCook helps
 you discover recipes, manage your kitchen, and cooks along with you using voice
 commands.
 
@@ -44,14 +44,14 @@ commands.
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/your-username/pirinku.git
-   cd pirinku
+   git clone https://github.com/your-username/recook.git
+   cd recook
    ```
 
 2. **Install dependencies:**
 
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 
 3. **Environment Setup:** Create a `.env` file in the root directory and add
@@ -76,7 +76,7 @@ commands.
 ## 📂 Project Structure
 
 ```
-pirinku/
+recook/
 ├── app/                 # Expo Router pages and screens
 ├── components/          # Reusable UI components
 │   ├── feed/            # Feed-related components
