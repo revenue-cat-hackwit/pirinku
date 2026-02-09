@@ -36,9 +36,20 @@ export interface ChatHistoryResponse {
 export interface AskAndSaveResponse {
     success: boolean;
     data: {
-        message: string;
-        response: string;
+        titleId: string;
+        historyId: string;
+        message: {
+            role: 'user';
+            content: string;
+        };
+        response: {
+            role: 'assistant';
+            content: string;
+        };
+        provider: string;
+        isNewConversation: boolean;
     };
+    message: string;
 }
 
 export const ChatService = {

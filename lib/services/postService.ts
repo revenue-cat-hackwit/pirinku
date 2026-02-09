@@ -1,5 +1,5 @@
 import apiClient from './apiClient';
-import { PostsResponse, MyCommentsResponse, SavedPostsResponse, FeedsResponse, RawPostsResponse, RawPost, Post } from '@/lib/types/post';
+import { PostsResponse, MyCommentsResponse, SavedPostsResponse, MyPostsResponse, FeedsResponse, RawPostsResponse, RawPost, Post } from '@/lib/types/post';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Helper function to get current user ID from token or storage
@@ -17,7 +17,7 @@ const getCurrentUserId = async (): Promise<string | null> => {
 // Helper function to transform raw post to Post type
 const transformPost = async (rawPost: RawPost): Promise<Post> => {
     const currentUserId = await getCurrentUserId();
-    
+
     // Handle missing user data
     if (!rawPost.userId) {
         throw new Error(`Post ${rawPost._id} is missing user data`);
@@ -75,12 +75,12 @@ export const PostService = {
         const response = await apiClient.get<RawPostsResponse>('/api/posts', {
             params: { page, limit, userId },
         });
-        
+
         // Transform raw posts to expected format
         const transformedPosts = await Promise.all(
             response.data.data.posts.map(post => transformPost(post))
         );
-        
+
         return {
             success: response.data.success,
             data: {
@@ -99,7 +99,7 @@ export const PostService = {
         const response = await apiClient.get<{ success: boolean; data: { post: RawPost } }>(
             `/api/posts/${postId}`
         );
-        
+
         let transformedPost: Post | null = null;
         if (response.data.success && response.data.data.post) {
             transformedPost = await transformPost(response.data.data.post);
@@ -130,6 +130,16 @@ export const PostService = {
      */
     async getSavedPosts(): Promise<SavedPostsResponse> {
         const response = await apiClient.get<SavedPostsResponse>('/api/profile/post-saved');
+        return response.data;
+    },
+
+    /**
+     * Get my posts
+     * GET /api/profile/my-post
+     * Requires Authorization header with Bearer token
+     */
+    async getMyPosts(): Promise<MyPostsResponse> {
+        const response = await apiClient.get<MyPostsResponse>('/api/profile/my-post');
         return response.data;
     },
 
@@ -180,13 +190,13 @@ export const PostService = {
      * POST /api/posts
      */
     async publishRecipe(recipe: any): Promise<{ success: boolean; message: string; data?: any }> {
-        const body = { 
+        const body = {
             title: recipe.title,
             recipeSnapshot: recipe,
             imageUrl: recipe.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600',
-            content: recipe.description || '' 
+            content: recipe.description || ''
         };
-        
+
         const response = await apiClient.post<{ success: boolean; message: string; data?: any }>(
             '/api/posts',
             body

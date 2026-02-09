@@ -94,10 +94,10 @@ export default function Feed() {
       prev.map((p) =>
         p.id === postId
           ? {
-              ...p,
-              isLiked: !p.isLiked,
-              likesCount: p.isLiked ? p.likesCount - 1 : p.likesCount + 1,
-            }
+            ...p,
+            isLiked: !p.isLiked,
+            likesCount: p.isLiked ? p.likesCount - 1 : p.likesCount + 1,
+          }
           : p,
       ),
     );
@@ -212,6 +212,10 @@ export default function Feed() {
     }
   };
 
+  const handleAvatarPress = (userId: string) => {
+    router.push(`/other-user-profile?userId=${userId}`);
+  };
+
   return (
     <View className="flex-1 bg-white dark:bg-[#0F0F0F]">
       <FlatList
@@ -225,6 +229,7 @@ export default function Feed() {
             onComment={handleComment}
             onPress={handlePostPress}
             onFollow={handleFollow}
+            onAvatarPress={handleAvatarPress}
           />
         )}
         refreshControl={

@@ -200,3 +200,53 @@ export interface ApiErrorResponse {
     message: string;
     error?: string;
 }
+
+// ============= Followers =============
+export interface Follower {
+    id: string;
+    username: string;
+    fullName: string;
+    avatar?: string;
+    bio?: string;
+}
+
+export interface FollowersResponse {
+    success: boolean;
+    message: string;
+    data: {
+        followers: Follower[];
+        total: number;
+    };
+}
+
+export interface FollowingResponse {
+    success: boolean;
+    message: string;
+    data: {
+        following: Follower[];
+        total: number;
+    };
+}
+
+// ============= Other User Profile =============
+export interface OtherUserProfile {
+    id: string;
+    username: string;
+    fullName: string;
+    email: string;
+    avatar?: string;
+    followersCount: number;
+    followingCount: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface OtherUserProfileResponse {
+    success: boolean;
+    message: string;
+    data: {
+        user: OtherUserProfile;
+        posts: any[]; // Will use Post type from post.ts
+        totalPosts: number;
+    };
+}

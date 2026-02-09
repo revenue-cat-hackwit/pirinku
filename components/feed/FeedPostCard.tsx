@@ -17,9 +17,10 @@ interface FeedPostCardProps {
   onComment: (postId: string) => void;
   onPress?: (postId: string) => void;
   onFollow?: (userId: string, isFollowing: boolean) => void;
+  onAvatarPress?: (userId: string) => void;
 }
 
-export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComment, onPress, onFollow }) => {
+export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComment, onPress, onFollow, onAvatarPress }) => {
   const router = useRouter();
   const currentUser = useAuthStore((state) => state.user);
   const [imageLoading, setImageLoading] = useState(true);
@@ -71,17 +72,22 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComm
       {/* Header */}
       <View className="flex-row items-center justify-between p-4 pb-3">
         <View className="flex-1 flex-row items-center">
-          <View className="h-12 w-12 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-            <Image
-              source={{
-                uri:
-                  post.user.avatar ||
-                  `https://ui-avatars.com/api/?name=${post.user.fullName}&background=random`,
-              }}
-              style={{ width: 48, height: 48 }}
-              contentFit="cover"
-            />
-          </View>
+          <TouchableOpacity
+            onPress={() => onAvatarPress?.(post.user.id)}
+            activeOpacity={0.7}
+          >
+            <View className="h-12 w-12 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+              <Image
+                source={{
+                  uri:
+                    post.user.avatar ||
+                    `https://ui-avatars.com/api/?name=${post.user.fullName}&background=random`,
+                }}
+                style={{ width: 48, height: 48 }}
+                contentFit="cover"
+              />
+            </View>
+          </TouchableOpacity>
           <View className="ml-3 flex-1">
             <Text className="font-visby-bold text-base text-gray-900 dark:text-white">
               {post.user.fullName}
@@ -96,18 +102,16 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComm
         {currentUser?.id !== post.user.id && onFollow && (
           <TouchableOpacity
             onPress={() => onFollow(post.user.id, !!post.isFollowing)}
-            className={`rounded-full px-4 py-1.5 ${
-              post.isFollowing
+            className={`rounded-full px-4 py-1.5 ${post.isFollowing
                 ? 'border border-gray-300 bg-transparent dark:border-gray-600'
                 : 'bg-[#8BD65E]'
-            }`}
+              }`}
           >
             <Text
-              className={`font-visby-bold text-xs ${
-                post.isFollowing
+              className={`font-visby-bold text-xs ${post.isFollowing
                   ? 'text-gray-600 dark:text-gray-300'
                   : 'text-white'
-              }`}
+                }`}
             >
               {post.isFollowing ? 'Following' : 'Follow'}
             </Text>
@@ -129,17 +133,17 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onLike, onComm
             </Text>
           )}
         </Text>
-        
+
         {/* Linked Recipe Card */}
         {hasLinkedRecipe && (
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
-                if (recipeData) {
-                    useViewRecipeStore.getState().setRecipe(recipeData);
-                    router.push('/recipe/shared');
-                } else if (oldRecipeId) {
-                    router.push(`/recipe/${oldRecipeId}`);
-                }
+              if (recipeData) {
+                useViewRecipeStore.getState().setRecipe(recipeData);
+                router.push('/recipe/shared');
+              } else if (oldRecipeId) {
+                router.push(`/recipe/${oldRecipeId}`);
+              }
             }}
             className="mt-3 flex-row items-center bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl border border-orange-100 dark:border-orange-900"
             activeOpacity={0.8}

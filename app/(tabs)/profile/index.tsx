@@ -11,6 +11,8 @@ import { ProButton } from '@/components/ProButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useViewRecipeStore } from '@/lib/store/viewRecipeStore';
 import { Recipe } from '@/lib/types';
+import { FollowersModal } from '@/components/profile/FollowersModal';
+import { FollowingModal } from '@/components/profile/FollowingModal';
 
 import {
   ScrollView,
@@ -87,6 +89,10 @@ export default function Profile() {
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('My Posts');
 
+  // Modal state
+  const [followersModalVisible, setFollowersModalVisible] = useState(false);
+  const [followingModalVisible, setFollowingModalVisible] = useState(false);
+
   // Posts data
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [myComments, setMyComments] = useState<MyComment[]>([]);
@@ -99,7 +105,7 @@ export default function Profile() {
 
   const fetchProfile = async (force = false) => {
     if (!token) return;
-    
+
     // Debounce: cegah fetch berulang dalam 2 detik, KECUALI force refresh
     const now = Date.now();
     if (!force && (isFetchingRef.current || (now - lastFetchTimeRef.current < 2000))) {
@@ -125,8 +131,8 @@ export default function Profile() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    triggerRefetch(); 
-    
+    triggerRefetch();
+
     try {
       const promises = [fetchProfile(true)];
       if (activeTab === 'My Posts') {
@@ -134,49 +140,24 @@ export default function Profile() {
       } else if (activeTab === 'Reply') {
         promises.push(fetchTabData('Reply'));
       }
-      
+
       await Promise.all(promises);
-    } catch(e) {
+    } catch (e) {
       console.error("Refresh failed", e);
     } finally {
       setRefreshing(false);
     }
   }, [token, activeTab]);
 
-  const fetchTabData = async (tab: TabType, explicitUserId?: string) => {
+  const fetchTabData = async (tab: TabType) => {
     if (!token) return;
 
     try {
       setLoadingPosts(true);
 
       if (tab === 'My Posts') {
-        // Use explicit userId if provided, otherwise fallback to profileData or currentUser
-        let userId = explicitUserId || profileData?.id || currentUser?.id;
-        
-        // Fallback to AsyncStorage if state is not ready yet
-        if (!userId) {
-            try {
-              const storedUserId = await AsyncStorage.getItem('pirinku_user_id');
-              if (storedUserId) userId = storedUserId;
-            } catch (err) {
-              console.warn("Failed to get stored user id", err);
-            }
-        }
-        
-        if (!userId) {
-             // If we still don't have a userId, do NOT fetch global posts.
-             // This prevents showing other users' posts on the profile page.
-             console.log("No user ID available for profile posts, skipping fetch");
-             setMyPosts([]); 
-             setLoadingPosts(false);
-             return;
-        }
-
-        console.log(`Fetching posts for user: ${userId}`);
-
-        // Fetch posts filtered by userId from server
-        // Using page 1, default limit 10
-        const response = await PostService.getPosts(1, 10, userId);
+        // Use dedicated my-post endpoint
+        const response = await PostService.getMyPosts();
         setMyPosts(response.data.posts);
       } else if (tab === 'Reply') {
         const response = await PostService.getMyComments();
@@ -194,29 +175,29 @@ export default function Profile() {
       // Fetch data in parallel to avoid waterfall
       const loadData = async () => {
         const promises = [];
-        
+
         if (shouldRefetch || !profileData) {
           promises.push(fetchProfile());
         }
-        
+
         // Always fetch tab data on focus too if empty, or rely on activeTab effect?
         // Let's fetch if empty or shouldRefetch. 
         // Using currentUser.id is safe for initial load.
         if (activeTab === 'My Posts' && (myPosts.length === 0 || shouldRefetch)) {
-           promises.push(fetchTabData('My Posts', currentUser?.id));
+          promises.push(fetchTabData('My Posts'));
         } else if (activeTab === 'Reply' && (myComments.length === 0 || shouldRefetch)) {
-           promises.push(fetchTabData('Reply'));
+          promises.push(fetchTabData('Reply'));
         }
 
         await Promise.all(promises);
       };
-      
+
       loadData();
-      
+
       return () => {
         isFetchingRef.current = false;
       };
-    }, [token, shouldRefetch, profileData, activeTab, currentUser?.id]), 
+    }, [token, shouldRefetch, profileData, activeTab, currentUser?.id]),
   );
 
   // Fetch tab data when tab changes
@@ -269,14 +250,14 @@ export default function Profile() {
 
         {/* Linked Recipe Card */}
         {hasLinkedRecipe && (
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
-                if (recipeData) {
-                    useViewRecipeStore.getState().setRecipe(recipeData);
-                    router.push('/recipe/shared');
-                } else if (oldRecipeId) {
-                    router.push(`/recipe/${oldRecipeId}`);
-                }
+              if (recipeData) {
+                useViewRecipeStore.getState().setRecipe(recipeData);
+                router.push('/recipe/shared');
+              } else if (oldRecipeId) {
+                router.push(`/recipe/${oldRecipeId}`);
+              }
             }}
             className="mb-3 flex-row items-center bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl border border-orange-100 dark:border-orange-900"
             activeOpacity={0.8}
@@ -395,7 +376,7 @@ export default function Profile() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-[#0F0F0F]" edges={['top']}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8BD65E" />
@@ -450,19 +431,25 @@ export default function Profile() {
 
           {/* Stats */}
           <View className="mb-6 w-full flex-row justify-between px-8">
-            <View className="items-center">
+            <TouchableOpacity
+              className="items-center"
+              onPress={() => setFollowingModalVisible(true)}
+            >
               <Text className="font-visby-bold text-lg text-black dark:text-white">
                 {profileData?.followingCount || 0}
               </Text>
               <Text className="font-visby text-xs text-gray-500 dark:text-gray-400">Following</Text>
-            </View>
+            </TouchableOpacity>
             <View className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700" />
-            <View className="items-center">
+            <TouchableOpacity
+              className="items-center"
+              onPress={() => setFollowersModalVisible(true)}
+            >
               <Text className="font-visby-bold text-lg text-black dark:text-white">
                 {profileData?.followersCount || 0}
               </Text>
               <Text className="font-visby text-xs text-gray-500 dark:text-gray-400">Followers</Text>
-            </View>
+            </TouchableOpacity>
             <View className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700" />
             <View className="items-center">
               <Text className="font-visby-bold text-lg text-black dark:text-white">
@@ -495,16 +482,14 @@ export default function Profile() {
               <TouchableOpacity
                 key={tab}
                 onPress={() => setActiveTab(tab)}
-                className={`flex-1 items-center border-b-2 py-3 ${
-                  activeTab === tab ? 'border-[#8BD65E]' : 'border-transparent'
-                }`}
+                className={`flex-1 items-center border-b-2 py-3 ${activeTab === tab ? 'border-[#8BD65E]' : 'border-transparent'
+                  }`}
               >
                 <Text
-                  className={`font-visby text-sm ${
-                    activeTab === tab
-                      ? 'font-bold text-[#8BD65E]'
-                      : 'text-gray-400 dark:text-gray-500'
-                  }`}
+                  className={`font-visby text-sm ${activeTab === tab
+                    ? 'font-bold text-[#8BD65E]'
+                    : 'text-gray-400 dark:text-gray-500'
+                    }`}
                 >
                   {tab}
                 </Text>
@@ -516,6 +501,18 @@ export default function Profile() {
           {renderTabContent()}
         </View>
       </ScrollView>
+
+      {/* Followers Modal */}
+      <FollowersModal
+        visible={followersModalVisible}
+        onClose={() => setFollowersModalVisible(false)}
+      />
+
+      {/* Following Modal */}
+      <FollowingModal
+        visible={followingModalVisible}
+        onClose={() => setFollowingModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

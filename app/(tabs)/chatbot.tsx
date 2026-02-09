@@ -15,7 +15,7 @@ import { Danger, TickCircle, MagicStar, Trash, HambergerMenu } from 'iconsax-rea
 import * as ImagePicker from 'expo-image-picker';
 import { Message, Recipe } from '@/lib/types';
 import { AIService } from '@/lib/services/aiService';
-
+import { ChatService } from '@/lib/services/chatService';
 import { RecipeService } from '@/lib/services/recipeService';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -111,9 +111,14 @@ export default function Chatbot() {
   const loadSessions = async () => {
     setChatHistoryLoading(true);
     try {
-      const sessions = await AIService.getSessions();
+      const response = await ChatService.getChatTitles();
+      const sessions = response.data.map((title) => ({
+        id: title._id,
+        title: title.title,
+        timestamp: new Date(title.createdAt).getTime(),
+      }));
       setChatSessions(sessions);
-      
+
       // If we have sessions but no current chat selected, select the first one
       if (sessions.length > 0 && !currentTitleId) {
         setCurrentTitleId(sessions[0].id);
@@ -135,8 +140,25 @@ export default function Chatbot() {
   const loadHistory = async (sessionId: string) => {
     setLoading(true);
     try {
-      const history = await AIService.getHistory(sessionId);
-      setMessages(history);
+      const response = await ChatService.getChatHistory(sessionId);
+      const messages: Message[] = [];
+
+      // Convert chat history to Message format
+      response.data.forEach((history) => {
+        history.messages.forEach((msg, index) => {
+          messages.push({
+            id: `${history._id}-${index}`,
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(history.createdAt).getTime(),
+          });
+        });
+      });
+
+      // Sort messages from oldest to newest (ascending order)
+      messages.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+
+      setMessages(messages);
     } catch (e) {
       console.error('Failed to load history', e);
       setMessages([]);
@@ -156,7 +178,7 @@ export default function Chatbot() {
 
   // Helper for generating UUIDs
   const generateUUID = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
       var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
@@ -166,10 +188,10 @@ export default function Chatbot() {
     if (!inputText.trim() && !loading) return;
 
     const userMessageContent = inputText.trim();
-    
+
     // Create a temporary ID for optimistic UI
     const tempId = generateUUID();
-    
+
     // 1. Prepare User Message
     const userMessage: Message = {
       id: tempId,
@@ -185,62 +207,59 @@ export default function Chatbot() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
-      let sessionId = currentTitleId;
+      let titleId = currentTitleId;
 
       // 3. New Session Handling (if no session selected)
-      if (!sessionId) {
-        // Create session in DB first to get a real ID and set title from first message
-        const newSessionId = await AIService.createSession(userMessageContent.slice(0, 50));
-        if (newSessionId) {
-            sessionId = newSessionId;
-            setCurrentTitleId(sessionId);
+      if (!titleId) {
+        // Create a new chat title
+        const response = await ChatService.createChatTitle(userMessageContent.slice(0, 50));
+        if (response.success) {
+          titleId = response.data._id;
+          setCurrentTitleId(titleId);
         } else {
-            // Fallback if DB fails (offline mode?) - tough choice, maybe error or fallback to local
-            throw new Error("Failed to start new conversation");
+          throw new Error("Failed to start new conversation");
         }
       }
 
-      // 4. Save User Message to DB (Background)
-      AIService.saveMessage('user', userMessageContent, sessionId);
+      // 4. Call API to send message and save (all in one)
+      const response = await ChatService.askAndSave(titleId, userMessageContent, 'groq');
 
-      // 5. Call AI Edge Function
-      const allMessages = [...messages, userMessage]; 
-      const aiResponseContent = await AIService.sendMessage(allMessages);
-
-      if (aiResponseContent) {
+      if (response.success && response.data.response.content) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         const aiMessage: Message = {
-          id: generateUUID(),
+          id: response.data.historyId,
           role: 'assistant',
-          content: aiResponseContent,
+          content: response.data.response.content,
           timestamp: Date.now(),
         };
 
-        // 6. Update UI with AI Response
+        // 5. Update UI with AI Response
         setMessages((prev) => [...prev, aiMessage]);
 
-        // 7. Save AI Message to DB
-        AIService.saveMessage('assistant', aiResponseContent, sessionId);
-        
-        // 8. Refresh sessions list
-        loadSessions(); 
+        // 6. Update titleId if it's a new conversation
+        if (response.data.isNewConversation) {
+          setCurrentTitleId(response.data.titleId);
+        }
+
+        // 7. Refresh sessions list
+        loadSessions();
       } else {
         throw new Error('Empty response from AI');
       }
     } catch (error: any) {
       console.error('[Chatbot] Error calling AI:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      
-      const errorMessage = error.message.includes('Unauthorized') 
-          ? 'Please login to use Cooki.' 
-          : 'Sorry, Cooki is taking a break. Try again later.';
+
+      const errorMessage = error.message?.includes('Unauthorized') || error.response?.status === 401
+        ? 'Please login to use Cooki.'
+        : 'Sorry, Cooki is taking a break. Try again later.';
 
       showAlert('Error', errorMessage, undefined, {
         icon: <Danger size={32} color="#EF4444" variant="Bold" />,
         type: 'destructive',
       });
-      
+
       // Remove the optimistic user message if failed
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
     } finally {
@@ -283,17 +302,17 @@ export default function Chatbot() {
         return;
       }
       const base64 = `data:image/jpeg;base64,${asset.base64}`;
-      
+
       let sessionId = currentTitleId;
       if (!sessionId) {
-          // Create session for Image Analysis
-          const newSessionId = await AIService.createSession("Image Analysis");
-          if (newSessionId) {
-             sessionId = newSessionId;
-             setCurrentTitleId(sessionId);
-          } else {
-             throw new Error("Failed to start image session");
-          }
+        // Create session for Image Analysis
+        const newSessionId = await AIService.createSession("Image Analysis");
+        if (newSessionId) {
+          sessionId = newSessionId;
+          setCurrentTitleId(sessionId);
+        } else {
+          throw new Error("Failed to start image session");
+        }
       }
 
       const userMessage: Message = {
@@ -377,31 +396,31 @@ export default function Chatbot() {
       const ingredientsMatch = content.match(/(?:Bahan|Ingredients?):?\s*\n((?:[-•\d].*\n?)+)/i);
       const ingredients = ingredientsMatch
         ? ingredientsMatch[1]
-            .split('\n')
-            .filter((l) => l.trim())
-            .map((l) => {
-              // Remove bullet points and numbering
-              const cleaned = l.replace(/^[-•\d.)\s]+/, '').trim();
+          .split('\n')
+          .filter((l) => l.trim())
+          .map((l) => {
+            // Remove bullet points and numbering
+            const cleaned = l.replace(/^[-•\d.)\s]+/, '').trim();
 
-              // Try to parse quantity, unit, and item
-              // Pattern: "200g Chicken" or "2 cups flour" or "1/2 tsp salt"
-              const match = cleaned.match(/^([\d./]+)\s*([a-zA-Z]+)?\s+(.+)$/);
+            // Try to parse quantity, unit, and item
+            // Pattern: "200g Chicken" or "2 cups flour" or "1/2 tsp salt"
+            const match = cleaned.match(/^([\d./]+)\s*([a-zA-Z]+)?\s+(.+)$/);
 
-              if (match) {
-                return {
-                  quantity: match[1],
-                  unit: match[2] || 'pcs',
-                  item: match[3],
-                };
-              }
-
-              // If no pattern match, treat whole string as item with quantity 1
+            if (match) {
               return {
-                quantity: '1',
-                unit: 'pcs',
-                item: cleaned,
+                quantity: match[1],
+                unit: match[2] || 'pcs',
+                item: match[3],
               };
-            })
+            }
+
+            // If no pattern match, treat whole string as item with quantity 1
+            return {
+              quantity: '1',
+              unit: 'pcs',
+              item: cleaned,
+            };
+          })
         : [];
 
       // Extract steps
@@ -584,13 +603,13 @@ export default function Chatbot() {
             onContentSizeChange={() => {
               // Auto scroll to bottom when new message content is added
               if (messages.length > 0) {
-                 flatListRef.current?.scrollToEnd({ animated: true });
+                flatListRef.current?.scrollToEnd({ animated: true });
               }
             }}
             onLayout={() => {
               // Auto scroll to bottom when view size changes (e.g. keyboard opens/closes)
               if (messages.length > 0) {
-                 flatListRef.current?.scrollToEnd({ animated: false });
+                flatListRef.current?.scrollToEnd({ animated: false });
               }
             }}
           />

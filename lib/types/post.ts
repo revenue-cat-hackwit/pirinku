@@ -147,3 +147,14 @@ export interface SavedPostsResponse {
         total: number;
     };
 }
+
+// ============= My Posts Types =============
+export interface MyPostsResponse {
+    success: boolean;
+    message: string;
+    data: {
+        posts: Post[];
+        total: number;
+    };
+}
+
