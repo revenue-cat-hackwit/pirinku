@@ -736,6 +736,13 @@ export default function SavedRecipesScreen() {
       {/* VIEW CONTENT */}
       {viewMode === 'collections' ? (
         <ScrollView className="flex-1 px-5 pt-2">
+          {/* Collections Header */}
+          <View className="mb-3 flex-row items-center justify-between">
+            <Text className="font-visby-bold text-lg text-gray-900 dark:text-white">
+              Your Collections
+            </Text>
+          </View>
+
           <View className="flex-row flex-wrap justify-between pb-10">
             {recipeGroups.map((collection, index) => (
               <CollectionCard

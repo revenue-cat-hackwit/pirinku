@@ -279,40 +279,61 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               </View>
             )}
 
-            {/* Add Image Button */}
             {/* Add Image Options */}
             {!selectedImage && !imageUrl && !isUploading && (
-              <View className="mt-4 flex-row gap-4">
-                <TouchableOpacity
-                  onPress={() => pickImage('camera')}
-                  className="flex-1 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-4 dark:border-gray-700"
-                  disabled={isSubmitting}
-                >
-                  <Camera size={24} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Bold" />
-                  <Text className="ml-2 font-visby-demibold text-base text-gray-600 dark:text-gray-400">
-                    Camera
-                  </Text>
-                </TouchableOpacity>
+              <View className="mt-6">
+                <Text className="mb-3 font-visby-bold text-sm text-gray-500 dark:text-gray-400">
+                  Add Content
+                </Text>
+                
+                {/* Row 1: Camera & Gallery */}
+                <View className="mb-3 flex-row items-center">
+                  <View className="flex-1">
+                    <TouchableOpacity
+                      onPress={() => pickImage('camera')}
+                      className="items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-6 dark:border-gray-700 dark:bg-gray-800"
+                      disabled={isSubmitting}
+                    >
+                      <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                        <Camera size={24} color="#3B82F6" variant="Bold" />
+                      </View>
+                      <Text className="font-visby-bold text-sm text-gray-700 dark:text-gray-300">
+                        Camera
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-                <TouchableOpacity
-                  onPress={() => pickImage('gallery')}
-                  className="flex-1 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-4 dark:border-gray-700"
-                  disabled={isSubmitting}
-                >
-                  <Gallery size={24} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Bold" />
-                  <Text className="ml-2 font-visby-demibold text-sm text-gray-600 dark:text-gray-400">
-                    Gallery
+                  <Text className="px-3 font-visby-bold text-sm text-gray-400 dark:text-gray-500">
+                    or
                   </Text>
-                </TouchableOpacity>
 
+                  <View className="flex-1">
+                    <TouchableOpacity
+                      onPress={() => pickImage('gallery')}
+                      className="items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-6 dark:border-gray-700 dark:bg-gray-800"
+                      disabled={isSubmitting}
+                    >
+                      <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                        <Gallery size={24} color="#A78BFA" variant="Bold" />
+                      </View>
+                      <Text className="font-visby-bold text-sm text-gray-700 dark:text-gray-300">
+                        Gallery
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Row 2: Recipe */}
                 <TouchableOpacity
                   onPress={() => setIsRecipeModalVisible(true)}
-                  className="flex-1 flex-row items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-4 dark:border-gray-700"
+                  className="items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-6 dark:border-gray-700 dark:bg-gray-800"
                   disabled={isSubmitting}
                 >
-                  <Book size={24} color={isDark ? '#9CA3AF' : '#6B7280'} variant="Bold" />
-                  <Text className="ml-2 font-visby-demibold text-sm text-gray-600 dark:text-gray-400">
-                    Recipe
+                  <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                    <Book size={24} color="#F97316" variant="Bold" />
+                  </View>
+                  <Text className="font-visby-bold text-sm text-gray-700 dark:text-gray-300">
+                    Attach Recipe
                   </Text>
                 </TouchableOpacity>
               </View>
