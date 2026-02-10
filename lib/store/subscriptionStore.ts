@@ -26,7 +26,13 @@ export const useSubscriptionStore = create<SubscriptionState>()(
             Purchases.configure({ apiKey: REVENUECAT_API_KEYS.google });
           }
 
-          await Purchases.setLogLevel(Purchases.LOG_LEVEL.WARN);
+          // Enable debug logging and sandbox mode for development
+          await Purchases.setLogLevel(__DEV__ ? Purchases.LOG_LEVEL.DEBUG : Purchases.LOG_LEVEL.WARN);
+          
+          // For Android testing without published app
+          if (Platform.OS === 'android' && __DEV__) {
+            console.log('🧪 [Store] Running in development mode - using sandbox');
+          }
 
           // Fetch cached/latest info
           let customerInfo = null;
