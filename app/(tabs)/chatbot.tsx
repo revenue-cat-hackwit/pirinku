@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { showAlert } from '@/lib/utils/globalAlert';
 import { Danger, TickCircle, MagicStar, Trash, HambergerMenu } from 'iconsax-react-native';
-import * as ImagePicker from 'expo-image-picker';
+
 import { Message, Recipe } from '@/lib/types';
 import { AIService } from '@/lib/services/aiService';
 import { ChatService } from '@/lib/services/chatService';
@@ -267,111 +267,7 @@ export default function Chatbot() {
     }
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      showAlert(
-        'Permission Denied',
-        'Cooki needs gallery access to see your ingredients.',
-        undefined,
-        {
-          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-          type: 'destructive',
-        },
-      );
-      return;
-    }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only Images allowed
-      allowsEditing: true,
-      quality: 0.7,
-      base64: true, // For images
-    });
-
-    if (!result.canceled && result.assets && result.assets[0]) {
-      const asset = result.assets[0];
-
-      // For images, use base64
-      if (!asset.base64) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert('Error', 'Failed to process image. Please try again.', undefined, {
-          icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-          type: 'destructive',
-        });
-        return;
-      }
-      const base64 = `data:image/jpeg;base64,${asset.base64}`;
-
-      let sessionId = currentTitleId;
-      if (!sessionId) {
-        // Create session for Image Analysis
-        const newSessionId = await AIService.createSession("Image Analysis");
-        if (newSessionId) {
-          sessionId = newSessionId;
-          setCurrentTitleId(sessionId);
-        } else {
-          throw new Error("Failed to start image session");
-        }
-      }
-
-      const userMessage: Message = {
-        id: generateUUID(),
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: inputText.trim() || 'Please create a recipe from the ingredients in this image',
-          },
-          { type: 'image_url', image_url: { url: base64 } },
-        ],
-        timestamp: Date.now(),
-      };
-
-      setMessages((prev) => [...prev, userMessage]);
-      setInputText('');
-      setLoading(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      // Save User Msg (Image + Text) with Session ID
-      AIService.saveMessage('user', userMessage.content!, sessionId);
-
-      try {
-        const allMessages = messages.concat(userMessage);
-
-        const aiResponseContent = await AIService.sendMessage(allMessages);
-
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-        const aiMessage: Message = {
-          id: generateUUID(),
-          role: 'assistant',
-          content: aiResponseContent,
-          timestamp: Date.now(),
-        };
-
-        setMessages((prev) => [...prev, aiMessage]);
-
-        // Save AI with Session ID
-        AIService.saveMessage('assistant', aiResponseContent, sessionId);
-        loadSessions();
-      } catch (error: any) {
-        console.error('Error analyzing image:', error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert(
-          'Error',
-          'Failed to analyze image. Please ensure you have a stable internet connection.',
-          undefined,
-          {
-            icon: <Danger size={32} color="#EF4444" variant="Bold" />,
-            type: 'destructive',
-          },
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
 
   // Parse and save recipe from AI response
   const handleSaveLastRecipe = async () => {
@@ -620,7 +516,6 @@ export default function Chatbot() {
               value={inputText}
               onChangeText={setInputText}
               onSend={sendMessage}
-              onPickImage={pickImage}
               loading={loading}
             />
           </View>

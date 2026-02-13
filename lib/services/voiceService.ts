@@ -52,4 +52,53 @@ export const VoiceService = {
       throw error;
     }
   },
+
+  async generateSpeech(
+    text: string,
+    config: VoiceConfig
+  ): Promise<{ audio: string }> {
+    try {
+      const token = supabaseAnonKey;
+      if (!token) throw new Error('No Auth Token');
+
+      const formData = new FormData();
+
+      // Backend requires an audio file even for TTS requests.
+      // We append a dummy file to bypass this validation.
+      const dummyFile = {
+        uri: 'file:///dev/null', // Placeholder URI
+        name: 'tts_trigger.m4a',
+        type: 'audio/m4a',
+      } as any;
+
+      formData.append('audio', dummyFile);
+      
+      const payloadConfig = {
+        ...config,
+        tts_only: true, // Flag for backend
+        input_text: text, // Passing text to speak
+      };
+
+      formData.append('config', JSON.stringify(payloadConfig));
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/voice-processor`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Content-Type header excluded so boundary is set automatically
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`TTS Service Error: ${err}`);
+      }
+
+      return await response.json(); // Expecting { audio: "base64..." }
+    } catch (error) {
+      console.error('TTS Service Error:', error);
+      throw error;
+    }
+  },
 };

@@ -32,6 +32,10 @@ interface SettingsState {
   voiceSpeed: number;
   setVoiceSpeed: (speed: number) => Promise<void>;
   loadVoiceSpeed: () => Promise<void>;
+
+  voiceEmotion: string;
+  setVoiceEmotion: (emotion: string) => Promise<void>;
+  loadVoiceEmotion: () => Promise<void>;
 }
 
 const LANGUAGE_STORAGE_KEY = '@pirinku_language';
@@ -115,6 +119,22 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const parsed = parseFloat(saved);
         if (!isNaN(parsed)) set({ voiceSpeed: parsed });
       }
+    } catch (e) {}
+  },
+
+  voiceEmotion: 'happy',
+  setVoiceEmotion: async (emotion: string) => {
+    try {
+      await AsyncStorage.setItem('@pirinku_voice_emotion', emotion);
+      set({ voiceEmotion: emotion });
+    } catch (e) {
+      console.error('Failed to save voice emotion', e);
+    }
+  },
+  loadVoiceEmotion: async () => {
+    try {
+      const saved = await AsyncStorage.getItem('@pirinku_voice_emotion');
+      if (saved) set({ voiceEmotion: saved });
     } catch (e) {}
   },
 }));

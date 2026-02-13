@@ -18,12 +18,13 @@ import { useColorScheme } from 'nativewind';
 import { Camera, Gallery, CloseCircle } from 'iconsax-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { UploadService } from '@/lib/services/uploadService';
-import { showAlert } from '@/lib/utils/globalAlert';
+
 
 import { CustomCameraModal } from '@/components/CustomCameraModal';
 import { RecipeSelectModal } from './RecipeSelectModal';
 import { Book } from 'iconsax-react-native';
 import { Recipe } from '@/lib/types';
+import { CustomAlertModal } from '@/components/CustomAlertModal';
 
 interface CreatePostModalProps {
   visible: boolean;
@@ -47,14 +48,60 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
+  
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'default' as 'default' | 'destructive',
+    icon: 'alert-circle',
+    showCancel: false,
+    confirmText: 'OK',
+    cancelText: 'Cancel',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (title: string, message: string, variant: 'success' | 'warning' | 'error' | 'info' = 'error') => {
+    let type: 'default' | 'destructive' = 'default';
+    let icon = 'alert-circle';
+    
+    switch (variant) {
+        case 'error':
+            type = 'destructive';
+            icon = 'alert-circle';
+            break;
+        case 'warning':
+            type = 'default';
+            icon = 'warning-outline';
+            break;
+        case 'success':
+            type = 'default';
+            icon = 'checkmark-circle';
+            break;
+        case 'info':
+        default:
+            type = 'default';
+            icon = 'information-circle';
+            break;
+    }
+
+    setAlertConfig(prev => ({
+        ...prev,
+        visible: true,
+        title,
+        message,
+        type,
+        icon,
+        onConfirm: () => setAlertConfig(p => ({ ...p, visible: false })),
+    }));
+  };
 
   const handleSubmit = async () => {
-    // ... existing submit logic ...
     const hasContent = content.trim().length > 0;
     const hasRecipe = !!selectedRecipe;
 
     if ((!hasContent && !hasRecipe) || isSubmitting) {
-      showAlert('Oops!', 'Please write something or attach a recipe!');
+      showAlert('Oops!', 'Please write something or attach a recipe!', 'warning');
       return;
     }
 
@@ -75,7 +122,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error creating post:', error);
-      showAlert('Error', 'Failed to create post. Please try again!');
+      showAlert('Error', 'Failed to create post. Please try again!', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,7 +154,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-          showAlert('Permission Required', 'We need permission to access your photo library.');
+          showAlert('Permission Required', 'We need permission to access your photo library.', 'warning');
           return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -124,7 +171,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      showAlert('Error', 'Failed to select image. Please try again!');
+      showAlert('Error', 'Failed to select image. Please try again!', 'error');
     }
   };
 
@@ -154,13 +201,13 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       
       if (response.success && response.data.url) {
         setImageUrl(response.data.url);
-        showAlert('Success!', 'Photo uploaded successfully!');
+        showAlert('Success!', 'Photo uploaded successfully!', 'success');
       } else {
         throw new Error('Upload failed');
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      showAlert('Error', 'Failed to upload image. Please try again!');
+      showAlert('Error', 'Failed to upload image. Please try again!', 'error');
       setSelectedImage(null);
     } finally {
       setIsUploading(false);
@@ -196,14 +243,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             </Text>
             <TouchableOpacity
               onPress={handleSubmit}
-              disabled={!content.trim() || isSubmitting || isUploading}
+              disabled={(!content.trim() && !selectedRecipe) || isSubmitting || isUploading}
             >
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#8BC34A" />
               ) : (
                 <Text
                   className={`font-visby-bold text-base ${
-                    content.trim() && !isUploading ? 'text-[#8BC34A]' : 'text-gray-400'
+                    (content.trim() || selectedRecipe) && !isUploading ? 'text-[#8BC34A]' : 'text-gray-400'
                   }`}
                 >
                   Post
@@ -342,33 +389,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           </ScrollView>
 
-          {/* Submit Button */}
-          <View
-            className="border-t border-gray-200 bg-white px-4 pt-4 dark:border-gray-800 dark:bg-[#0F0F0F]"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
-          >
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={(!content.trim() && !selectedRecipe) || isSubmitting || isUploading}
-              className={`flex-row items-center justify-center rounded-full py-4 ${
-                (!content.trim() && !selectedRecipe) || isSubmitting || isUploading
-                  ? 'bg-gray-300 dark:bg-gray-700'
-                  : 'bg-[#8BC34A]'
-              }`}
-              activeOpacity={0.8}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <>
-                  <Ionicons name="send" size={20} color="white" />
-                  <Text className="ml-2 font-visby-bold text-base text-white">
-                    Share Post
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+
         </KeyboardAvoidingView>
       </View>
       <CustomCameraModal
@@ -381,6 +402,19 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         visible={isRecipeModalVisible}
         onClose={() => setIsRecipeModalVisible(false)}
         onSelect={handleRecipeSelect}
+      />
+      
+      <CustomAlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        icon={alertConfig.icon}
+        showCancel={alertConfig.showCancel}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        onConfirm={alertConfig.onConfirm}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
       />
     </Modal>
   );

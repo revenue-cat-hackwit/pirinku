@@ -417,7 +417,7 @@ export default function Feed() {
             </View>
           </>
         }
-        contentContainerStyle={{ paddingBottom: 16, paddingHorizontal: 0 }}
+        contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 0 }}
         ListFooterComponent={
           loading && posts.length > 0 ? (
             <View className="py-4">
@@ -441,7 +441,7 @@ export default function Feed() {
       {/* Floating Action Button */}
       <TouchableOpacity
         onPress={() => setCreatePostModalVisible(true)}
-        className="absolute bottom-6 right-6 flex-row items-center gap-2 rounded-full bg-[#8BC34A] px-5 py-4 shadow-lg shadow-black/25"
+        className="absolute bottom-24 right-6 flex-row items-center gap-2 rounded-full bg-[#8BC34A] px-5 py-4 shadow-lg shadow-black/25"
         activeOpacity={0.8}
         style={{
           elevation: 8,

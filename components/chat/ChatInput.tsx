@@ -21,13 +21,13 @@ interface ChatInputProps {
   value: string;
   onChangeText: (text: string) => void;
   onSend: () => void;
-  onPickImage: () => void;
+
   loading: boolean;
   disabled?: boolean;
 }
 
 export const ChatInput = React.memo(
-  ({ value, onChangeText, onSend, onPickImage, loading, disabled }: ChatInputProps) => {
+  ({ value, onChangeText, onSend, loading, disabled }: ChatInputProps) => {
     const [recording, setRecording] = useState<Audio.Recording | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -360,30 +360,10 @@ export const ChatInput = React.memo(
               marginTop: 8,
               flexDirection: 'row',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
             }}
           >
-            {/* Action Left */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-              <TouchableOpacity
-                onPress={onPickImage}
-                disabled={disabled || loading}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <View
-                  style={{
-                    height: 40,
-                    width: 40,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 9999,
-                    backgroundColor: 'white',
-                  }}
-                >
-                  <Add size={24} color="#333" variant="Outline" />
-                </View>
-              </TouchableOpacity>
-            </View>
+            {/* Action Left - REMOVED */}
 
             {/* Action Right */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
