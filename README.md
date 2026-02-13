@@ -1,9 +1,21 @@
 # 🍽️ ReCook - Your AI Smart Cooking Assistant
 
-ReCook is an innovative mobile application tailored for culinary enthusiasts
-and home cooks. Leveraging the power of Artificial Intelligence, ReCook helps
-you discover recipes, manage your kitchen, and cooks along with you using voice
+ReCook is an innovative mobile application tailored for culinary enthusiasts and
+home cooks. Leveraging the power of Artificial Intelligence, ReCook helps you
+discover recipes, manage your kitchen, and cooks along with you using voice
 commands.
+
+## 📱 Demo
+
+<!--
+Cara terbaik untuk menampilkan video:
+1. Download video dari link di bawah.
+2. Buka file README.md ini di GitHub.com.
+3. Klik ikon pensil (Edit).
+4. Drag & drop file video ke area editor ini. GitHub akan membuat player otomatis.
+-->
+
+[**🎥 Tonton Demo Aplikasi ReCook**](https://drive.google.com/file/d/17DuTBpqvDyeGnxownCiUXpe4c3A3e5mD/view?usp=drive_link)
 
 ## ✨ Key Features
 
